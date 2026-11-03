@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SoftCopyright.Domain\SoftCopyright.Domain.csproj" />
+    <ProjectReference Include="..\..\src\SoftCopyright.Application\SoftCopyright.Application.csproj" />
+    <ProjectReference Include="..\..\src\SoftCopyright.ProjectScan\SoftCopyright.ProjectScan.csproj" />
+    <ProjectReference Include="..\..\src\SoftCopyright.AI\SoftCopyright.AI.csproj" />
+    <ProjectReference Include="..\..\src\SoftCopyright.Documents\SoftCopyright.Documents.csproj" />
+    <ProjectReference Include="..\..\src\SoftCopyright.Infrastructure\SoftCopyright.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\SoftCopyright.Api\SoftCopyright.Api.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,7 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\SoftCopyright.Domain\SoftCopyright.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

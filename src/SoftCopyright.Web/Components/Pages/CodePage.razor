@@ -1,0 +1,188 @@
+@page "/cases/{CaseId:guid}/code"
+@rendermode InteractiveServer
+@inject ICaseApiClient Api
+
+<CaseHeader CaseId="CaseId" ActiveTab="code" />
+
+<div class="page-head">
+    <div>
+        <h1>代码材料选材</h1>
+        <div class="sub">材料中的每一行代码都来自下面勾选的真实文件，可预览原始内容并回溯哈希。</div>
+    </div>
+    <div class="actions">
+        <button class="btn" disabled="@_busy" @onclick="SaveAsync">保存选择</button>
+        <button class="btn btn-primary" disabled="@_busy" @onclick="SaveAndConfirmAsync">保存并确认范围</button>
+    </div>
+</div>
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger">@_error</div>
+}
+@if (_message is not null)
+{
+    <div class="alert alert-ok">@_message</div>
+}
+
+<div class="card">
+    <div class="row">
+        <strong>候选源文件（@_candidates.Count）</strong>
+        <span class="muted small">已选 @_selected.Count 个</span>
+        <span class="spacer"></span>
+        <button class="btn btn-sm" @onclick="SelectAll">全选</button>
+        <button class="btn btn-sm" @onclick="() => _selected.Clear()">全不选</button>
+    </div>
+
+    @if (_candidates.Count == 0)
+    {
+        <div class="empty">尚未扫描到候选源文件，请先在「导入仓库」页执行扫描。</div>
+    }
+    else
+    {
+        <table>
+            <thead>
+            <tr>
+                <th style="width:44px">选择</th>
+                <th>相对路径</th>
+                <th style="width:90px">行数</th>
+                <th style="width:90px">语言</th>
+                <th style="width:120px">哈希</th>
+                <th style="width:90px"></th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var item in _candidates)
+            {
+                <tr>
+                    <td>
+                        <input type="checkbox" checked="@_selected.Contains(item.RelativePath)"
+                               @onchange="e => Toggle(item.RelativePath, (bool?)e.Value)" />
+                    </td>
+                    <td class="mono">@item.RelativePath</td>
+                    <td class="small">@(item.LineCount?.ToString() ?? "-")</td>
+                    <td class="small">@(item.Language ?? item.Category)</td>
+                    <td class="mono small">@item.Sha256[..Math.Min(10, item.Sha256.Length)]</td>
+                    <td>
+                        <button class="btn btn-sm" @onclick="() => PreviewAsync(item.RelativePath)">预览</button>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+</div>
+
+@if (_previewPath is not null)
+{
+    <div class="card">
+        <h2>源码预览：@_previewPath</h2>
+        <p class="muted small">以下为仓库中的原始内容，未做任何改写。</p>
+        <div class="codeblock">@_previewContent</div>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid CaseId { get; set; }
+
+    private List<CodeCandidateDto> _candidates = [];
+    private HashSet<string> _selected = new(StringComparer.OrdinalIgnoreCase);
+    private string? _previewPath;
+    private string? _previewContent;
+    private bool _busy;
+    private string? _error;
+    private string? _message;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            _candidates = (await Api.GetCodeCandidatesAsync(CaseId, CancellationToken.None)).ToList();
+            _selected = _candidates.Where(c => c.Included).Select(c => c.RelativePath).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            _error = null;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private void Toggle(string path, bool? isChecked)
+    {
+        if (isChecked == true)
+        {
+            _selected.Add(path);
+        }
+        else
+        {
+            _selected.Remove(path);
+        }
+    }
+
+    private void SelectAll()
+    {
+        _selected = _candidates.Select(c => c.RelativePath).ToHashSet(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private async Task PreviewAsync(string path)
+    {
+        try
+        {
+            _previewPath = path;
+            _previewContent = await Api.PreviewCodeAsync(CaseId, path, 200, CancellationToken.None) ?? "（无法读取该文件内容）";
+            _error = null;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _busy = true;
+        _error = null;
+        _message = null;
+        try
+        {
+            await Api.UpdateCodeSelectionAsync(CaseId, new UpdateCodeSelectionRequest(_selected.ToList()), CancellationToken.None);
+            _message = $"已保存 {_selected.Count} 个源文件。变更后需要重新确认草稿与最终材料。";
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task SaveAndConfirmAsync()
+    {
+        await SaveAsync();
+        if (_error is not null)
+        {
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            await Api.ConfirmAsync(CaseId, "CodeScope", "在「代码材料」页确认代码范围", CancellationToken.None);
+            _message = "代码范围已保存并确认，可以继续生成材料。";
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

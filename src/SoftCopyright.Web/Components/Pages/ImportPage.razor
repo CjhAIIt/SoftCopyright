@@ -1,0 +1,184 @@
+@page "/cases/{CaseId:guid}/import"
+@rendermode InteractiveServer
+@inject ICaseApiClient Api
+
+<CaseHeader CaseId="CaseId" ActiveTab="import" />
+
+<div class="page-head">
+    <div>
+        <h1>导入仓库</h1>
+        <div class="sub">上传 ZIP 压缩包，系统只做只读静态分析，不会执行仓库中的任何脚本。</div>
+    </div>
+    <div class="actions">
+        <button class="btn btn-primary" disabled="@_busy" @onclick="ScanAsync">开始扫描</button>
+    </div>
+</div>
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger">@_error</div>
+}
+@if (_message is not null)
+{
+    <div class="alert alert-ok">@_message</div>
+}
+
+<div class="card">
+    <h2>上传代码仓库</h2>
+    <p class="muted small">支持 .zip 压缩包，单个压缩包最大 50 MB。请先在本地把代码仓库打包为 ZIP。</p>
+    <InputFile OnChange="UploadAsync" accept=".zip" />
+</div>
+
+<div class="card">
+    <h2>安全处理说明</h2>
+    <ul class="small muted" style="margin:0;padding-left:20px;line-height:2">
+        <li>导入过程只读取文件内容，<strong>绝不执行</strong>仓库中的脚本、构建、安装或 Git hooks。</li>
+        <li>解压时防护 Zip Slip 路径穿越、绝对路径、磁盘驱动器路径、UNC 路径、符号链接、重复路径、压缩炸弹、超量条目与超大文件。</li>
+        <li>疑似凭据文件（.env、私钥、Token 等）会被识别并排除，不会出现在证据、模型请求或普通日志中。</li>
+        <li>依赖目录与构建产物默认排除，排除原因会逐条列出；安全类排除不可取消。</li>
+    </ul>
+</div>
+
+@if (_upload is not null)
+{
+    <div class="card">
+        <h2>本次导入摘要</h2>
+        <table>
+            <tbody>
+            <tr><td style="width:180px">压缩包</td><td>@_upload.FileName</td></tr>
+            <tr><td>条目数</td><td>@_upload.EntryCount</td></tr>
+            <tr><td>解压后大小</td><td>@(_upload.TotalBytes) 字节</td></tr>
+            <tr><td>落盘文件数</td><td>@_upload.ExtractedFileCount</td></tr>
+            <tr><td>跳过条目</td><td>@(_upload.SkippedEntries.Count == 0 ? "无" : string.Join("；", _upload.SkippedEntries))</td></tr>
+            </tbody>
+        </table>
+        @if (_upload.Warnings.Count > 0)
+        {
+            <div class="alert alert-warn" style="margin-top:12px">
+                @foreach (var warning in _upload.Warnings)
+                {
+                    <div>@warning</div>
+                }
+            </div>
+        }
+        <p class="muted small">@_upload.SecurityNote</p>
+    </div>
+}
+
+@if (_summary is not null)
+{
+    <div class="card">
+        <h2>扫描摘要</h2>
+        <div class="grid-2">
+            <table>
+                <tbody>
+                <tr><td style="width:150px">文件总数</td><td>@_summary.TotalFiles</td></tr>
+                <tr><td>纳入分析</td><td>@_summary.IncludedFiles</td></tr>
+                <tr><td>已排除</td><td>@_summary.ExcludedFiles</td></tr>
+                <tr><td>代码候选</td><td>@_summary.CodeCandidates</td></tr>
+                <tr><td>证据条数</td><td>@_summary.EvidenceCount</td></tr>
+                <tr><td>疑似凭据</td><td>@_summary.SuspectedSecretCount</td></tr>
+                </tbody>
+            </table>
+            <div>
+                <div class="small muted">识别到的语言</div>
+                <p>@(_summary.Languages.Count == 0 ? "未识别" : string.Join("、", _summary.Languages))</p>
+                <div class="small muted">命中的适配器</div>
+                <p>@(_summary.AdapterHits.Count == 0 ? "无" : string.Join("；", _summary.AdapterHits))</p>
+                <div class="small muted">排除原因</div>
+                <p>@(_summary.ExclusionReasons.Count == 0 ? "无" : string.Join("；", _summary.ExclusionReasons))</p>
+            </div>
+        </div>
+        @if (_summary.Warnings.Count > 0)
+        {
+            <div class="alert alert-warn">
+                @foreach (var warning in _summary.Warnings)
+                {
+                    <div>@warning</div>
+                }
+            </div>
+        }
+        <div class="row">
+            <a class="btn btn-primary" href="/cases/@CaseId/analysis">查看项目画像与证据</a>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid CaseId { get; set; }
+
+    private const long MaxUploadBytes = 50L * 1024 * 1024;
+
+    private bool _busy;
+    private string? _error;
+    private string? _message;
+    private UploadResultDto? _upload;
+    private ScanSummaryDto? _summary;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadSummaryAsync();
+    }
+
+    private async Task LoadSummaryAsync()
+    {
+        try
+        {
+            var detail = await Api.GetCaseAsync(CaseId, CancellationToken.None);
+            _summary = detail.ScanSummary;
+        }
+        catch (Exception)
+        {
+            // 摘要读取失败不影响上传。
+        }
+    }
+
+    private async Task UploadAsync(InputFileChangeEventArgs args)
+    {
+        var file = args.File;
+        if (file is null)
+        {
+            return;
+        }
+
+        _busy = true;
+        _error = null;
+        _message = null;
+
+        try
+        {
+            await using var stream = file.OpenReadStream(MaxUploadBytes);
+            _upload = await Api.UploadAsync(CaseId, file.Name, stream, CancellationToken.None);
+            _message = "导入完成，可以点击「开始扫描」生成项目画像。";
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task ScanAsync()
+    {
+        _busy = true;
+        _error = null;
+        _message = null;
+
+        try
+        {
+            await Api.TriggerScanAsync(CaseId, CancellationToken.None);
+            _message = "扫描任务已提交，进度可在页面顶部查看。";
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

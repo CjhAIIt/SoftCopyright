@@ -1,0 +1,33 @@
+# 构建产物
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+artifacts/
+*.user
+*.suo
+.vs/
+.idea/
+.vscode/
+
+# 本地运行数据（不纳入版本控制）
+App_Data/
+data/
+*.db
+*.db-shm
+*.db-wal
+
+# 生成的申请材料
+生成材料/
+*.zip
+!samples/**/*.zip
+
+# 测试与覆盖率
+TestResults/
+coverage*.json
+coverage*.xml
+*.coverage
+
+# 日志
+logs/
+*.log

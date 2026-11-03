@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <UserSecretsId>softcopyright-api</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SoftCopyright.Domain\SoftCopyright.Domain.csproj" />
+    <ProjectReference Include="..\SoftCopyright.Application\SoftCopyright.Application.csproj" />
+    <ProjectReference Include="..\SoftCopyright.ProjectScan\SoftCopyright.ProjectScan.csproj" />
+    <ProjectReference Include="..\SoftCopyright.AI\SoftCopyright.AI.csproj" />
+    <ProjectReference Include="..\SoftCopyright.Documents\SoftCopyright.Documents.csproj" />
+    <ProjectReference Include="..\SoftCopyright.Infrastructure\SoftCopyright.Infrastructure.csproj" />
+    <ProjectReference Include="..\SoftCopyright.Web\SoftCopyright.Web.csproj" />
+  </ItemGroup>
+
+</Project>

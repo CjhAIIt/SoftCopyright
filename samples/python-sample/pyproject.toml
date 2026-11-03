@@ -1,0 +1,11 @@
+[project]
+name = "python-sample"
+version = "0.3.0"
+description = "用于演示扫描流程的合成 Python 样例项目"
+requires-python = ">=3.10"
+dependencies = [
+  "fastapi>=0.110",
+]
+
+[project.scripts]
+python-sample = "main:main"

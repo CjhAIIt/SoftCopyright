@@ -1,0 +1,228 @@
+@page "/cases/{CaseId:guid}/materials"
+@rendermode InteractiveServer
+@inject ICaseApiClient Api
+
+<CaseHeader CaseId="CaseId" ActiveTab="materials" />
+
+<div class="page-head">
+    <div>
+        <h1>材料与导出</h1>
+        <div class="sub">生成前会先执行一致性校验；校验结论只代表本工具的自动化检查结果。</div>
+    </div>
+    <div class="actions">
+        <button class="btn" disabled="@_busy" @onclick="RefreshAsync">刷新</button>
+        <button class="btn" disabled="@_busy" @onclick="ConfirmDraftAsync">确认文档草稿</button>
+        <button class="btn btn-primary" disabled="@_busy" @onclick="GenerateAsync">生成材料</button>
+        <a class="btn" href="/api/cases/@CaseId/package/download">下载材料包</a>
+        <button class="btn" disabled="@_busy" @onclick="ConfirmAsync">确认最终材料</button>
+    </div>
+</div>
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger">@_error</div>
+}
+@if (_message is not null)
+{
+    <div class="alert alert-ok">@_message</div>
+}
+
+<div class="card">
+    <h2>一致性校验</h2>
+    @if (_validation.Count == 0)
+    {
+        <div class="empty">尚未执行校验，点击「生成材料」或「刷新」。</div>
+    }
+    else
+    {
+        <table>
+            <thead>
+            <tr>
+                <th style="width:110px">规则</th>
+                <th style="width:110px">级别</th>
+                <th style="width:160px">检查项</th>
+                <th>说明</th>
+                <th style="width:220px">处理建议</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var item in _validation)
+            {
+                <tr>
+                    <td class="mono small">@item.RuleId</td>
+                    <td><span class="badge @LevelBadge(item.Level)">@item.LevelText</span></td>
+                    <td class="small">@item.Title</td>
+                    <td class="small">@item.Message</td>
+                    <td class="small muted">@item.FixHint</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+        <p class="muted small">本报告仅表示本工具自动化规则的检查结果，不代表登记审查结论；材料规则版本请按官方最新要求核对。</p>
+    }
+</div>
+
+<div class="card">
+    <h2>已生成产物</h2>
+    @if (_artifacts.Count == 0)
+    {
+        <div class="empty">尚未生成材料产物。</div>
+    }
+    else
+    {
+        <table>
+            <thead>
+            <tr>
+                <th style="width:150px">类型</th>
+                <th>文件名</th>
+                <th style="width:100px">大小</th>
+                <th style="width:130px">哈希</th>
+                <th style="width:90px">状态</th>
+                <th style="width:90px">下载</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var artifact in _artifacts)
+            {
+                <tr>
+                    <td class="small">@artifact.KindText</td>
+                    <td class="small">@artifact.FileName</td>
+                    <td class="small">@artifact.SizeBytes B</td>
+                    <td class="mono small">@artifact.Sha256[..Math.Min(12, artifact.Sha256.Length)]</td>
+                    <td>
+                        @if (artifact.IsStale)
+                        {
+                            <span class="badge badge-warn">已失效</span>
+                        }
+                        else
+                        {
+                            <span class="badge badge-ok">可用</span>
+                        }
+                    </td>
+                    <td>
+                        @if (!artifact.IsStale)
+                        {
+                            <a class="btn btn-sm" href="@artifact.DownloadUrl">下载</a>
+                        }
+                        else
+                        {
+                            <span class="small muted">需重新生成</span>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+</div>
+
+<div class="card">
+    <h2>能力边界说明</h2>
+    <ul class="small muted" style="margin:0;padding-left:20px;line-height:2">
+        <li>本工具<strong>不生成 PDF</strong>：当前版本只产出 DOCX / TXT / JSON / HTML / ZIP 材料包，PDF 渲染尚未实现。</li>
+        <li>本工具<strong>不做官方系统自动提交</strong>：请自行登录官方系统填报并完成签章。</li>
+        <li>代码鉴别材料只截取被确认的仓库真实源码，不做任何改写或补写。</li>
+        <li>校验报告只表示自动化规则检查结果，不构成法律意见，也不保证登记通过。</li>
+    </ul>
+</div>
+
+@code {
+    [Parameter] public Guid CaseId { get; set; }
+
+    private List<ValidationDto> _validation = [];
+    private List<ArtifactDto> _artifacts = [];
+    private bool _busy;
+    private string? _error;
+    private string? _message;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await RefreshAsync();
+    }
+
+    private async Task RefreshAsync()
+    {
+        _busy = true;
+        try
+        {
+            _validation = (await Api.GetValidationAsync(CaseId, CancellationToken.None)).ToList();
+            _artifacts = (await Api.GetArtifactsAsync(CaseId, CancellationToken.None)).ToList();
+            _error = null;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task GenerateAsync()
+    {
+        _busy = true;
+        _error = null;
+        _message = null;
+        try
+        {
+            await Api.TriggerGenerateAsync(CaseId, CancellationToken.None);
+            _message = "材料生成任务已提交，进度可在页面顶部查看，完成后请刷新本页。";
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task ConfirmDraftAsync()
+    {
+        _busy = true;
+        _error = null;
+        _message = null;
+        try
+        {
+            await Api.ConfirmAsync(CaseId, "DocumentDraft", "在「材料与导出」页确认文档草稿", CancellationToken.None);
+            _message = "文档草稿已确认，可以生成正式材料。";
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task ConfirmAsync()
+    {
+        _busy = true;
+        _error = null;
+        _message = null;
+        try
+        {
+            await Api.ConfirmAsync(CaseId, "FinalPackage", "在「材料与导出」页确认最终材料", CancellationToken.None);
+            _message = "最终材料已确认，案例进入归档状态。";
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private static string LevelBadge(ValidationLevel level) => level switch
+    {
+        ValidationLevel.Pass => "badge-ok",
+        ValidationLevel.Warning => "badge-warn",
+        _ => "badge-danger"
+    };
+}

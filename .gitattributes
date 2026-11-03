@@ -1,0 +1,13 @@
+# 统一以 LF 存入版本库，检出时按平台转换
+* text=auto eol=lf
+
+# 二进制文件不做换行转换
+*.dll binary
+*.exe binary
+*.pdb binary
+*.zip binary
+*.docx binary
+*.pdf binary
+*.png binary
+*.jpg binary
+*.ico binary

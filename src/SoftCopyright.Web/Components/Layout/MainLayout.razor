@@ -1,0 +1,145 @@
+@inherits LayoutComponentBase
+
+<div class="app">
+    <header class="topbar">
+        <a class="brand" href="/">软著智能申请工具</a>
+        <nav class="topnav">
+            <a href="/">申请案例</a>
+        </nav>
+        <span class="env-note">本地单用户 MVP · 不联网提交</span>
+    </header>
+
+    <main class="content">
+        @Body
+    </main>
+
+    <footer class="footer">
+        本工具生成的材料仅供申请材料准备参考，最终登记由申请人在官方系统自行提交并签章。
+    </footer>
+</div>
+
+<style>
+    :root {
+        --bg: #f6f7f9;
+        --panel: #ffffff;
+        --line: #e3e6ea;
+        --text: #1f2328;
+        --muted: #656d76;
+        --accent: #4f46e5;
+        --accent-soft: #eef0fe;
+        --ok: #15803d;
+        --ok-soft: #e9f7ef;
+        --warn: #b45309;
+        --warn-soft: #fdf3e3;
+        --danger: #b91c1c;
+        --danger-soft: #fdeceb;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+        margin: 0;
+        padding: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", system-ui, sans-serif;
+        font-size: 14px;
+        line-height: 1.7;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .app { min-height: 100vh; display: flex; flex-direction: column; }
+
+    .topbar {
+        display: flex; align-items: center; gap: 20px;
+        padding: 0 20px; height: 52px;
+        background: var(--panel);
+        border-bottom: 1px solid var(--line);
+        position: sticky; top: 0; z-index: 20;
+    }
+
+    .brand { font-weight: 700; font-size: 16px; color: var(--text); }
+    .brand:hover { text-decoration: none; }
+    .topnav { display: flex; gap: 16px; }
+    .env-note { margin-left: auto; color: var(--muted); font-size: 12px; }
+
+    .content { flex: 1; width: 100%; max-width: 1180px; margin: 0 auto; padding: 20px; }
+    .footer { padding: 14px 20px; color: var(--muted); font-size: 12px; text-align: center; border-top: 1px solid var(--line); }
+
+    .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 18px 20px;
+        margin-bottom: 16px;
+    }
+
+    .card h2 { margin: 0 0 12px; font-size: 16px; }
+    .card h3 { margin: 18px 0 8px; font-size: 14px; }
+
+    .page-head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    .page-head h1 { font-size: 19px; margin: 0; }
+    .page-head .sub { color: var(--muted); font-size: 13px; }
+    .page-head .actions { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .btn {
+        display: inline-block; padding: 7px 14px; border-radius: 6px; border: 1px solid var(--line);
+        background: var(--panel); color: var(--text); cursor: pointer; font-size: 13px; font-family: inherit;
+    }
+    .btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: #4338ca; color: #fff; }
+    .btn-danger { color: var(--danger); border-color: #f0c8c6; }
+    .btn-danger:hover:not(:disabled) { border-color: var(--danger); color: var(--danger); }
+    .btn-sm { padding: 4px 10px; font-size: 12px; }
+
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 12px; border: 1px solid transparent; }
+    .badge-ok { background: var(--ok-soft); color: var(--ok); border-color: #bfe3cd; }
+    .badge-warn { background: var(--warn-soft); color: var(--warn); border-color: #f0dcb4; }
+    .badge-danger { background: var(--danger-soft); color: var(--danger); border-color: #f3c9c7; }
+    .badge-info { background: var(--accent-soft); color: var(--accent); border-color: #d5d8fb; }
+    .badge-muted { background: #f1f3f5; color: var(--muted); border-color: var(--line); }
+
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); font-size: 13px; vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; background: #fafbfc; }
+    tbody tr:hover { background: #fbfcfd; }
+
+    input[type=text], input[type=date], input[type=number], textarea, select {
+        width: 100%; padding: 7px 10px; border: 1px solid var(--line); border-radius: 6px;
+        font-family: inherit; font-size: 13px; background: #fff; color: var(--text);
+    }
+    textarea { min-height: 88px; resize: vertical; }
+    input:focus, textarea:focus, select:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+
+    label.field { display: block; margin-bottom: 14px; }
+    label.field > span { display: block; font-size: 13px; margin-bottom: 4px; color: var(--text); }
+    label.field .hint { font-size: 12px; color: var(--muted); }
+    .required { color: var(--danger); margin-left: 4px; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; }
+
+    .alert { padding: 10px 12px; border-radius: 6px; margin-bottom: 12px; font-size: 13px; border: 1px solid; }
+    .alert-ok { background: var(--ok-soft); border-color: #bfe3cd; color: var(--ok); }
+    .alert-warn { background: var(--warn-soft); border-color: #f0dcb4; color: var(--warn); }
+    .alert-danger { background: var(--danger-soft); border-color: #f3c9c7; color: var(--danger); }
+    .alert-info { background: var(--accent-soft); border-color: #d5d8fb; color: var(--accent); }
+    .alert-muted { background: #f1f3f5; border-color: var(--line); color: var(--muted); }
+
+    .empty { padding: 28px; text-align: center; color: var(--muted); font-size: 13px; }
+    .muted { color: var(--muted); }
+    .mono { font-family: Consolas, "Courier New", monospace; font-size: 12px; word-break: break-all; }
+    .codeblock { background: #1f2430; color: #e6e8ee; padding: 12px; border-radius: 6px; overflow: auto; max-height: 420px; font-family: Consolas, "Courier New", monospace; font-size: 12px; white-space: pre; }
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .spacer { flex: 1; }
+    .small { font-size: 12px; }
+
+    @@media (max-width: 720px) {
+        .grid-2 { grid-template-columns: 1fr; }
+        .content { padding: 12px; }
+        .env-note { display: none; }
+    }
+</style>

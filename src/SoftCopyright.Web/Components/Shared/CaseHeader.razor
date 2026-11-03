@@ -1,0 +1,167 @@
+@inject ICaseApiClient Api
+@implements IDisposable
+
+<div class="card">
+    <div class="row">
+        <strong>@(_detail?.Summary.Name ?? "加载中…")</strong>
+        @if (_detail is not null)
+        {
+            <span class="badge badge-info">@_detail.Summary.StageText</span>
+            <span class="muted small">规则版本 @_detail.RulesVersion ｜ 分析器 @_detail.AnalyzerVersion</span>
+        }
+        <span class="spacer"></span>
+        <a class="btn btn-sm" href="/">返回列表</a>
+    </div>
+
+    @if (_detail is not null)
+    {
+        <p class="muted small">@_detail.Summary.StatusMessage</p>
+
+        @if (_detail.Summary.FailureReason is { } failure)
+        {
+            <div class="alert alert-danger">最近一次失败原因：@failure</div>
+        }
+    }
+
+    <div class="steps">
+        @for (var i = 0; i < _stages.Count; i++)
+        {
+            var index = i;
+            var text = _stages[index];
+            var isCurrent = _detail is not null && _detail.StageNames.Count > index && _detail.StageNames[index] == _currentStageName;
+            var isDone = _detail is not null && _detail.StageNames.Count > index && _stageOrder(_detail.StageNames[index]) < _stageOrder(_currentStageName);
+            <div class="step @(isCurrent ? "current" : "") @(isDone ? "done" : "")">
+                <span class="dot"></span>
+                <span class="step-text">@text</span>
+            </div>
+        }
+    </div>
+
+    @if (_activeJob is not null)
+    {
+        <div class="alert @(_activeJob.Status == Domain.JobStatus.Failed ? "alert-danger" : _activeJob.Status == Domain.JobStatus.Succeeded ? "alert-ok" : "alert-info")">
+            <div class="row">
+                <strong>@_activeJob.TypeText</strong>
+                <span>@_activeJob.StatusText</span>
+                <span class="spacer"></span>
+                <span class="small">@_activeJob.Message</span>
+            </div>
+            @if (_activeJob.Status is Domain.JobStatus.Pending or Domain.JobStatus.Running)
+            {
+                <div class="progress"><div class="progress-bar" style="width:@(_activeJob.ProgressPercent)%"></div></div>
+            }
+            @if (_activeJob.ErrorMessage is { } error && !string.IsNullOrWhiteSpace(error))
+            {
+                <p class="small">失败原因：@error</p>
+            }
+            @if (_activeJob.Status == Domain.JobStatus.Failed)
+            {
+                <p class="small muted">请到对应页面重新触发该任务。</p>
+            }
+        </div>
+    }
+
+    <div class="tabs">
+        <a class="tab @(ActiveTab == "import" ? "active" : "")" href="/cases/@CaseId/import">导入仓库</a>
+        <a class="tab @(ActiveTab == "analysis" ? "active" : "")" href="/cases/@CaseId/analysis">分析与证据</a>
+        <a class="tab @(ActiveTab == "applicant" ? "active" : "")" href="/cases/@CaseId/applicant">申请信息</a>
+        <a class="tab @(ActiveTab == "code" ? "active" : "")" href="/cases/@CaseId/code">代码材料</a>
+        <a class="tab @(ActiveTab == "materials" ? "active" : "")" href="/cases/@CaseId/materials">材料与导出</a>
+    </div>
+</div>
+
+@code {
+    [Parameter] public Guid CaseId { get; set; }
+
+    [Parameter] public string ActiveTab { get; set; } = string.Empty;
+
+    private CaseDetailDto? _detail;
+    private JobDto? _activeJob;
+    private System.Threading.Timer? _timer;
+    private string _currentStageName = nameof(Domain.CaseStage.Created);
+
+    private static readonly List<string> _stages =
+    [
+        "创建", "上传", "扫描", "分析完成", "申请信息", "代码范围", "草稿就绪", "材料审核", "校验", "材料包", "归档"
+    ];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadAsync();
+        _timer ??= new System.Threading.Timer(async _ => await InvokeAsync(PollAsync), null, 2000, 2000);
+    }
+
+    private async Task PollAsync()
+    {
+        await LoadAsync();
+        StateHasChanged();
+    }
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            _detail = await Api.GetCaseAsync(CaseId, CancellationToken.None);
+            if (_detail is null)
+            {
+                return;
+            }
+
+            _currentStageName = _detail.StageNames.FirstOrDefault() ?? nameof(Domain.CaseStage.Created);
+            var stageIndex = StageIndex(_detail.Summary.Stage.ToString());
+            if (stageIndex >= 0 && stageIndex < _detail.StageNames.Count)
+            {
+                _currentStageName = _detail.StageNames[stageIndex];
+            }
+
+            _activeJob = _detail.Jobs.FirstOrDefault(j => j.Status is Domain.JobStatus.Pending or Domain.JobStatus.Running)
+                         ?? _detail.Jobs.FirstOrDefault();
+        }
+        catch (Exception)
+        {
+            // 轮询失败不打断页面显示。
+        }
+    }
+
+    private static int StageIndex(string stageName) => stageName switch
+    {
+        nameof(Domain.CaseStage.Created) => 0,
+        nameof(Domain.CaseStage.Uploaded) => 1,
+        nameof(Domain.CaseStage.Scanning) => 2,
+        nameof(Domain.CaseStage.AnalysisReady) => 3,
+        nameof(Domain.CaseStage.ApplicantInfoPending) => 4,
+        nameof(Domain.CaseStage.CodeSelectionPending) => 5,
+        nameof(Domain.CaseStage.DraftReady) => 6,
+        nameof(Domain.CaseStage.ReviewPending) => 7,
+        nameof(Domain.CaseStage.Validating) => 8,
+        nameof(Domain.CaseStage.PackageReady) => 9,
+        nameof(Domain.CaseStage.Archived) => 10,
+        nameof(Domain.CaseStage.Failed) => 2,
+        _ => 0
+    };
+
+    private static int _stageOrder(string stageName) => StageIndex(stageName);
+
+    public void Dispose()
+    {
+        _timer?.Dispose();
+    }
+}
+
+<style>
+    .steps { display: flex; flex-wrap: wrap; gap: 4px; margin: 12px 0 4px; }
+    .step { display: flex; align-items: center; gap: 6px; padding: 3px 10px 3px 6px; border-radius: 20px; background: #f1f3f5; color: var(--muted); font-size: 12px; }
+    .step .dot { width: 8px; height: 8px; border-radius: 50%; background: #c3c9d0; }
+    .step.done { background: var(--ok-soft); color: var(--ok); }
+    .step.done .dot { background: var(--ok); }
+    .step.current { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+    .step.current .dot { background: var(--accent); }
+
+    .progress { height: 6px; background: #e9ecef; border-radius: 4px; overflow: hidden; margin-top: 8px; }
+    .progress-bar { height: 100%; background: var(--accent); transition: width .3s ease; }
+
+    .tabs { display: flex; gap: 4px; margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; flex-wrap: wrap; }
+    .tab { padding: 6px 12px; border-radius: 6px; font-size: 13px; color: var(--muted); }
+    .tab:hover { background: #f4f5f7; text-decoration: none; }
+    .tab.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+</style>

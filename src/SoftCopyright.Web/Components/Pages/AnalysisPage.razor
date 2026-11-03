@@ -1,0 +1,250 @@
+@page "/cases/{CaseId:guid}/analysis"
+@rendermode InteractiveServer
+@inject ICaseApiClient Api
+
+<CaseHeader CaseId="CaseId" ActiveTab="analysis" />
+
+<div class="page-head">
+    <div>
+        <h1>项目分析与证据</h1>
+        <div class="sub">每条结论都标注来源与证据引用；没有证据支撑的内容一律标为推断或待确认。</div>
+    </div>
+    <div class="actions">
+        <button class="btn btn-primary" disabled="@_busy" @onclick="ConfirmAsync">确认项目画像</button>
+    </div>
+</div>
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger">@_error</div>
+}
+@if (_message is not null)
+{
+    <div class="alert alert-ok">@_message</div>
+}
+
+@if (_loading)
+{
+    <div class="card"><div class="empty">正在加载分析结果……</div></div>
+}
+else if (_analysis is null)
+{
+    <div class="card"><div class="empty">尚未生成分析结果，请先在「导入仓库」页执行扫描。</div></div>
+}
+else
+{
+    <div class="card">
+        <h2>项目画像</h2>
+        <table>
+            <tbody>
+            <tr>
+                <td style="width:130px">软件名称</td>
+                <td>@(_analysis.Name ?? "未识别")</td>
+                <td style="width:150px"><span class="badge @StatusBadge(_analysis.NameStatus)">@StatusText(_analysis.NameStatus)</span></td>
+            </tr>
+            <tr>
+                <td>版本号</td>
+                <td>@(_analysis.Version ?? "未识别")</td>
+                <td><span class="badge @StatusBadge(_analysis.VersionStatus)">@StatusText(_analysis.VersionStatus)</span></td>
+            </tr>
+            <tr>
+                <td>用途</td>
+                <td>@(_analysis.Purpose ?? "未识别")</td>
+                <td><span class="badge @StatusBadge(_analysis.PurposeStatus)">@StatusText(_analysis.PurposeStatus)</span></td>
+            </tr>
+            <tr>
+                <td>技术栈</td>
+                <td colspan="2">@(_analysis.Technologies.Count == 0 ? "未识别" : string.Join("、", _analysis.Technologies))</td>
+            </tr>
+            <tr>
+                <td>入口点</td>
+                <td colspan="2">@(_analysis.Entrypoints.Count == 0 ? "未识别" : string.Join("、", _analysis.Entrypoints))</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <h2>功能条目</h2>
+        @if (_analysis.Features.Count == 0)
+        {
+            <div class="empty">未能从仓库中提取到功能描述，请在「申请信息」页补充功能简介。</div>
+        }
+        else
+        {
+            <table>
+                <thead>
+                <tr>
+                    <th style="width:44%">描述</th>
+                    <th style="width:130px">状态</th>
+                    <th>证据</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var feature in _analysis.Features)
+                {
+                    <tr>
+                        <td>
+                            @feature.Value
+                            @if (!string.IsNullOrWhiteSpace(feature.Explanation))
+                            {
+                                <div class="small muted">@feature.Explanation</div>
+                            }
+                        </td>
+                        <td><span class="badge @StatusBadge(feature.Status)">@StatusText(feature.Status)</span></td>
+                        <td class="small">
+                            @if (feature.Evidence.Count == 0)
+                            {
+                                <span class="muted">无可验证证据</span>
+                            }
+                            else
+                            {
+                                @foreach (var evidence in feature.Evidence)
+                                {
+                                    <div class="mono">@evidence.RelativePath@(evidence.StartLine is null ? "" : $" 第 {evidence.StartLine} 行")</div>
+                                    <div class="mono muted">sha256:@evidence.Sha256</div>
+                                }
+                            }
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        }
+    </div>
+
+    <div class="card">
+        <h2>分析覆盖情况</h2>
+        <p class="muted small">覆盖度用于提示还有哪些信息没有从仓库中找到，不代表登记通过率。</p>
+        <table>
+            <tbody>
+            @foreach (var item in _analysis.Coverage)
+            {
+                <tr>
+                    <td style="width:160px">@item.Dimension</td>
+                    <td style="width:90px">
+                        <span class="badge @(item.Covered ? "badge-ok" : "badge-warn")">@(item.Covered ? "已识别" : "未识别")</span>
+                    </td>
+                    <td class="small muted">@item.Detail</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+
+    @if (_analysis.OpenQuestions.Count > 0)
+    {
+        <div class="card">
+            <h2>待申请人补充</h2>
+            <ul style="margin:0;padding-left:20px">
+                @foreach (var question in _analysis.OpenQuestions)
+                {
+                    <li>@question</li>
+                }
+            </ul>
+        </div>
+    }
+
+    <div class="card">
+        <h2>证据清单</h2>
+        @if (_analysis.Evidences.Count == 0)
+        {
+            <div class="empty">暂无证据。</div>
+        }
+        else
+        {
+            <table>
+                <thead>
+                <tr>
+                    <th>文件</th>
+                    <th style="width:80px">行号</th>
+                    <th style="width:130px">类型</th>
+                    <th>摘要</th>
+                    <th style="width:110px">哈希</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var evidence in _analysis.Evidences)
+                {
+                    <tr>
+                        <td class="mono">@evidence.RelativePath</td>
+                        <td class="small">@(evidence.StartLine?.ToString() ?? "-")</td>
+                        <td class="small">@evidence.EvidenceType</td>
+                        <td class="small muted">@evidence.Excerpt</td>
+                        <td class="mono small">@evidence.Sha256[..Math.Min(12, evidence.Sha256.Length)]</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public Guid CaseId { get; set; }
+
+    private AnalysisDto? _analysis;
+    private bool _loading = true;
+    private bool _busy;
+    private string? _error;
+    private string? _message;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            _analysis = await Api.GetAnalysisAsync(CaseId, CancellationToken.None);
+            _error = null;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task ConfirmAsync()
+    {
+        _busy = true;
+        _error = null;
+        _message = null;
+        try
+        {
+            await Api.ConfirmAsync(CaseId, "ProjectProfile", "在「分析与证据」页确认项目画像", CancellationToken.None);
+            _message = "项目画像已确认，可以继续填写申请信息。";
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private static string StatusBadge(FactStatus status) => status switch
+    {
+        FactStatus.Observed => "badge-ok",
+        FactStatus.Inferred => "badge-warn",
+        FactStatus.ApplicantConfirmed => "badge-info",
+        _ => "badge-danger"
+    };
+
+    private static string StatusText(FactStatus status) => status switch
+    {
+        FactStatus.Observed => "仓库证据",
+        FactStatus.Inferred => "推断，待确认",
+        FactStatus.ApplicantConfirmed => "已确认",
+        _ => "未知，待补充"
+    };
+}

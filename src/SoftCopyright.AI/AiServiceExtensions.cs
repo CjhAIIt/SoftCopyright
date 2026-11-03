@@ -1,0 +1,22 @@
+using Microsoft.Extensions.DependencyInjection;
+using SoftCopyright.Domain.Contracts;
+
+namespace SoftCopyright.AI;
+
+/// <summary>AI 层注册。</summary>
+public static class AiServiceExtensions
+{
+    public static IServiceCollection AddSoftCopyrightAi(this IServiceCollection services)
+    {
+        services.AddSingleton<IAiProvider, HttpAiProvider>();
+        services.AddSingleton<IAiOutputValidator, AiOutputValidator>();
+        services.AddSingleton<IEvidencePackBuilder, EvidencePackBuilder>();
+        services.AddSingleton<RuleBasedProjectAnalyzer>();
+        services.AddSingleton<MockModelAnalyzer>();
+        services.AddSingleton<HttpModelAnalyzer>();
+        services.AddSingleton<IProjectAnalyzer, ProjectAnalyzerRouter>();
+        services.AddSingleton<IMaterialDraftGenerator, MaterialDraftGenerator>();
+
+        return services;
+    }
+}

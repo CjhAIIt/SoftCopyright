@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SoftCopyright.AI/SoftCopyright.AI.csproj" />
+    <Project Path="src/SoftCopyright.Api/SoftCopyright.Api.csproj" />
+    <Project Path="src/SoftCopyright.Application/SoftCopyright.Application.csproj" />
+    <Project Path="src/SoftCopyright.Documents/SoftCopyright.Documents.csproj" />
+    <Project Path="src/SoftCopyright.Domain/SoftCopyright.Domain.csproj" />
+    <Project Path="src/SoftCopyright.Infrastructure/SoftCopyright.Infrastructure.csproj" />
+    <Project Path="src/SoftCopyright.ProjectScan/SoftCopyright.ProjectScan.csproj" />
+    <Project Path="src/SoftCopyright.Web/SoftCopyright.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SoftCopyright.Tests/SoftCopyright.Tests.csproj" />
+  </Folder>
+</Solution>

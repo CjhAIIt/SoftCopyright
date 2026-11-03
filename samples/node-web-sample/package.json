@@ -1,0 +1,13 @@
+{
+  "name": "node-web-sample",
+  "version": "2.0.1",
+  "description": "用于演示扫描流程的合成 Node 样例项目",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "echo \"样例项目不包含测试\" && exit 0"
+  },
+  "dependencies": {
+    "express": "^4.18.0"
+  }
+}
