@@ -25,6 +25,20 @@ public static class Mapping
         flow.RequiresCodeSelection,
         flow.WorkspacePath);
 
+    /// <summary>选项目录 → DTO（前端据此渲染受约束的下拉项）。</summary>
+    public static ApplicantOptionCatalogDto ToApplicantOptions() => new(
+        ApplicantOptionCatalog.Source,
+        ApplicantOptionCatalog.All.Select(f => new ApplicantOptionFieldDto(
+                f.Field,
+                f.Label,
+                f.Description,
+                f.Required,
+                f.Options.Select(o => new ApplicantOptionDto(o.Value, o.Label, o.Note)).ToList()))
+            .ToList(),
+        ApplicantOptionCatalog.Conditions.Select(c => new ApplicantConditionDto(c.Field, c.Value, c.RequiredField, c.Reason)).ToList(),
+        ApplicantOptionCatalog.Constraints.Select(c => new ApplicantConstraintDto(
+            c.Field, c.Value, c.RelatedField, c.AllowedValues, c.Reason)).ToList());
+
     public static string StageText(CaseStage stage) => stage switch
     {
         CaseStage.Created => "已创建",

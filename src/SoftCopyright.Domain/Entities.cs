@@ -171,15 +171,36 @@ public sealed class ApplicantInfo
 
     public string CopyrightOwner { get; set; } = string.Empty;
 
+    /// <summary>著作权人类别（选项码，见 <see cref="ApplicantOptionCatalog.OwnerTypeField" />）。</summary>
+    public string OwnerType { get; set; } = string.Empty;
+
+    /// <summary>软件来源（选项码，见 <see cref="ApplicantOptionCatalog.SoftwareSourceField" />）。</summary>
+    public string SoftwareSource { get; set; } = string.Empty;
+
+    /// <summary>修改说明（选择「修改软件」类选项时必填）。</summary>
+    public string? ModificationDescription { get; set; }
+
+    /// <summary>原登记号（继受取得或前期版本已登记时填写）。</summary>
+    public string? OriginalRegistrationNumber { get; set; }
+
     public string DevelopmentMode { get; set; } = string.Empty;
 
     public string RightsAcquisitionMethod { get; set; } = string.Empty;
+
+    /// <summary>权利范围（选项码，见 <see cref="ApplicantOptionCatalog.RightsScopeField" />）。</summary>
+    public string RightsScope { get; set; } = string.Empty;
+
+    /// <summary>部分权利权项说明（选择「部分权利」时必填）。</summary>
+    public string? PartialRightsDescription { get; set; }
 
     public string? CompletionDate { get; set; }
 
     public string FirstPublicationStatus { get; set; } = string.Empty;
 
     public string? FirstPublicationDate { get; set; }
+
+    /// <summary>首次发表地点（选择「已发表」时必填）。</summary>
+    public string? FirstPublicationPlace { get; set; }
 
     public string DevelopmentEnvironment { get; set; } = string.Empty;
 
@@ -188,6 +209,15 @@ public sealed class ApplicantInfo
     public string ProgrammingLanguages { get; set; } = string.Empty;
 
     public string SourceProgramAmount { get; set; } = string.Empty;
+
+    /// <summary>鉴别材料交存方式（选项码，见 <see cref="ApplicantOptionCatalog.DepositModeField" />）。</summary>
+    public string DepositMode { get; set; } = string.Empty;
+
+    /// <summary>申请办理方式（选项码，见 <see cref="ApplicantOptionCatalog.ApplicationHandlingMethodField" />）。</summary>
+    public string ApplicationHandlingMethod { get; set; } = string.Empty;
+
+    /// <summary>分类号（GB/T 13702 软件分类代码 5 位 + GB/T 4754 国民经济行业分类代码 4 位，形如 12345-1234）。</summary>
+    public string? ClassificationCode { get; set; }
 
     public string FunctionSummary { get; set; } = string.Empty;
 

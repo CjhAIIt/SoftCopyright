@@ -67,6 +67,16 @@ public sealed class CaseFlowTests(ApiTestFactory factory) : IClassFixture<ApiTes
             programmingLanguages = "C#",
             sourceProgramAmount = "20 行",
             functionSummary = "用于集成测试的样例软件，提供基础示例功能。",
+            ownerType = "法人",
+            softwareSource = "原创软件",
+            modificationDescription = (string?)null,
+            originalRegistrationNumber = (string?)null,
+            rightsScope = "全部权利",
+            partialRightsDescription = (string?)null,
+            firstPublicationPlace = (string?)null,
+            depositMode = "一般交存",
+            applicationHandlingMethod = "著作权人申请办理",
+            classificationCode = "12345-1234",
             expectedRowVersion = 0
         };
 
@@ -159,6 +169,16 @@ public sealed class CaseFlowTests(ApiTestFactory factory) : IClassFixture<ApiTes
             programmingLanguages = "C#",
             sourceProgramAmount = "20 行",
             functionSummary = "功能简介",
+            ownerType = "法人",
+            softwareSource = "原创软件",
+            modificationDescription = (string?)null,
+            originalRegistrationNumber = (string?)null,
+            rightsScope = "全部权利",
+            partialRightsDescription = (string?)null,
+            firstPublicationPlace = (string?)null,
+            depositMode = "一般交存",
+            applicationHandlingMethod = "著作权人申请办理",
+            classificationCode = "12345-1234",
             expectedRowVersion = 0
         });
         Assert.Equal(HttpStatusCode.OK, save.StatusCode);
@@ -185,6 +205,16 @@ public sealed class CaseFlowTests(ApiTestFactory factory) : IClassFixture<ApiTes
             programmingLanguages = "C#",
             sourceProgramAmount = "20 行",
             functionSummary = "功能简介",
+            ownerType = "法人",
+            softwareSource = "原创软件",
+            modificationDescription = (string?)null,
+            originalRegistrationNumber = (string?)null,
+            rightsScope = "全部权利",
+            partialRightsDescription = (string?)null,
+            firstPublicationPlace = (string?)null,
+            depositMode = "一般交存",
+            applicationHandlingMethod = "著作权人申请办理",
+            classificationCode = "12345-1234",
             expectedRowVersion = 1
         });
 

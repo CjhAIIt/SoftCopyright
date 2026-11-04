@@ -17,12 +17,74 @@ public sealed partial class SoftCopyrightValidationRuleSet(IOptions<MaterialRule
     {
         var results = new List<ValidationResult>();
         results.AddRange(CheckRequiredFields(context.ApplicantInfo));
+        results.Add(CheckOptionFields(context.ApplicantInfo));
         results.Add(CheckConsistency(context.Case, context.ApplicantInfo));
         results.Add(CheckSourceProgramAmount(context.ApplicantInfo, context.CodeSelectionItems));
         results.Add(CheckTraceability(context.CodeSelectionItems, context.ProjectFiles));
         results.Add(CheckPendingItems(context.Case, context.Analysis));
         return results;
     }
+
+    /// <summary>
+    /// 选项型字段的取值检查：必选、值域合法、条件必填与跨字段约束。
+    /// 判定与保存时的拒绝逻辑共用 <see cref="ApplicantOptionChecker" />。
+    /// </summary>
+    private static ValidationResult CheckOptionFields(ApplicantInfo? info)
+    {
+        if (info is null)
+        {
+            return new ValidationResult("R-FIELDS-02", ValidationLevel.ActionRequired, "选项字段合规性",
+                "尚未填写申请信息，无法核对选项字段。", "MaterialRules", "先在「申请信息」页填写并确认。");
+        }
+
+        var issues = ApplicantOptionChecker.Check(field => ReadField(info, field));
+        if (issues.Count == 0)
+        {
+            return new ValidationResult("R-FIELDS-02", ValidationLevel.Pass, "选项字段合规性",
+                $"全部 {ApplicantOptionCatalog.All.Count} 个选项字段均已按规定取值。",
+                "ApplicantOptionCatalog",
+                ApplicantOptionCatalog.Source);
+        }
+
+        var blocking = issues.Count(i => i.Blocking);
+
+        return new ValidationResult("R-FIELDS-02", ValidationLevel.ActionRequired, "选项字段合规性",
+            string.Join("；", issues.Select(i => i.Message)),
+            "ApplicantOptionCatalog",
+            blocking > 0
+                ? "请在「申请信息」页按官方要求改正后重新确认。"
+                : "请在「申请信息」页补全或核对后重新确认。");
+    }
+
+    /// <summary>按字段名读取申请信息中的值。</summary>
+    private static string? ReadField(ApplicantInfo info, string field) => field switch
+    {
+        nameof(ApplicantInfo.SoftwareFullName) => info.SoftwareFullName,
+        nameof(ApplicantInfo.SoftwareAbbreviation) => info.SoftwareAbbreviation,
+        nameof(ApplicantInfo.VersionNumber) => info.VersionNumber,
+        nameof(ApplicantInfo.CopyrightOwner) => info.CopyrightOwner,
+        nameof(ApplicantInfo.OwnerType) => info.OwnerType,
+        nameof(ApplicantInfo.SoftwareSource) => info.SoftwareSource,
+        nameof(ApplicantInfo.ModificationDescription) => info.ModificationDescription,
+        nameof(ApplicantInfo.OriginalRegistrationNumber) => info.OriginalRegistrationNumber,
+        nameof(ApplicantInfo.DevelopmentMode) => info.DevelopmentMode,
+        nameof(ApplicantInfo.RightsAcquisitionMethod) => info.RightsAcquisitionMethod,
+        nameof(ApplicantInfo.RightsScope) => info.RightsScope,
+        nameof(ApplicantInfo.PartialRightsDescription) => info.PartialRightsDescription,
+        nameof(ApplicantInfo.CompletionDate) => info.CompletionDate,
+        nameof(ApplicantInfo.FirstPublicationStatus) => info.FirstPublicationStatus,
+        nameof(ApplicantInfo.FirstPublicationDate) => info.FirstPublicationDate,
+        nameof(ApplicantInfo.FirstPublicationPlace) => info.FirstPublicationPlace,
+        nameof(ApplicantInfo.DevelopmentEnvironment) => info.DevelopmentEnvironment,
+        nameof(ApplicantInfo.RuntimeEnvironment) => info.RuntimeEnvironment,
+        nameof(ApplicantInfo.ProgrammingLanguages) => info.ProgrammingLanguages,
+        nameof(ApplicantInfo.SourceProgramAmount) => info.SourceProgramAmount,
+        nameof(ApplicantInfo.DepositMode) => info.DepositMode,
+        nameof(ApplicantInfo.ApplicationHandlingMethod) => info.ApplicationHandlingMethod,
+        nameof(ApplicantInfo.ClassificationCode) => info.ClassificationCode,
+        nameof(ApplicantInfo.FunctionSummary) => info.FunctionSummary,
+        _ => null
+    };
 
     private IEnumerable<ValidationResult> CheckRequiredFields(ApplicantInfo? info)
     {

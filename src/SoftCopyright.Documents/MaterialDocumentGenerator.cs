@@ -45,34 +45,77 @@ public sealed class MaterialDocumentGenerator(
     private static GeneratedDocument BuildApplicationFormInfo(MaterialGenerationRequest request, MaterialRules rules)
     {
         var builder = new StringBuilder();
+        var info = request.Applicant;
         builder.AppendLine("软件著作权登记申请信息（草稿，需申请人按官方最新要求核对）");
         builder.AppendLine(new string('=', 56));
+
+        builder.AppendLine("一、软件基本信息");
         builder.AppendLine($"软件全称：{request.SoftwareFullName}");
+        builder.AppendLine($"软件简称：{OrBlank(info?.SoftwareAbbreviation)}");
         builder.AppendLine($"版本号：{request.SoftwareVersion}");
-        builder.AppendLine($"著作权人：{request.CopyrightOwner}");
-        builder.AppendLine($"开发完成日期：{request.CompletionDate}");
-        builder.AppendLine($"首次发表状态：{request.FirstPublicationStatus}");
-        builder.AppendLine($"首次发表日期：{request.FirstPublicationDate}");
-        builder.AppendLine($"开发方式：{request.DevelopmentMode}");
-        builder.AppendLine($"权利取得方式：{request.RightsAcquisitionMethod}");
-        builder.AppendLine($"开发环境：{request.DevelopmentEnvironment}");
-        builder.AppendLine($"运行环境：{request.RuntimeEnvironment}");
-        builder.AppendLine($"编程语言：{request.ProgrammingLanguages}");
-        builder.AppendLine($"源程序量：{request.SourceProgramAmount}");
+        builder.AppendLine($"分类号：{OrBlank(info?.ClassificationCode)}");
+        builder.AppendLine($"著作权人：{info?.CopyrightOwner}");
+        builder.AppendLine($"著作权人类别：{OptionLabel(nameof(ApplicantInfo.OwnerType), info?.OwnerType)}");
+        builder.AppendLine();
+
+        builder.AppendLine("二、软件作品说明");
+        builder.AppendLine($"软件来源：{OptionLabel(nameof(ApplicantInfo.SoftwareSource), info?.SoftwareSource)}");
+        builder.AppendLine($"修改说明：{OrBlank(info?.ModificationDescription)}");
+        builder.AppendLine($"原登记号：{OrBlank(info?.OriginalRegistrationNumber)}");
+        builder.AppendLine($"开发方式：{OptionLabel(nameof(ApplicantInfo.DevelopmentMode), info?.DevelopmentMode)}");
+        builder.AppendLine($"开发完成日期：{OrBlank(info?.CompletionDate)}");
+        builder.AppendLine($"发表状态：{OptionLabel(nameof(ApplicantInfo.FirstPublicationStatus), info?.FirstPublicationStatus)}");
+        builder.AppendLine($"首次发表日期：{OrBlank(info?.FirstPublicationDate)}");
+        builder.AppendLine($"首次发表地点：{OrBlank(info?.FirstPublicationPlace)}");
+        builder.AppendLine();
+
+        builder.AppendLine("三、权利说明");
+        builder.AppendLine($"权利取得方式：{OptionLabel(nameof(ApplicantInfo.RightsAcquisitionMethod), info?.RightsAcquisitionMethod)}");
+        builder.AppendLine($"权利范围：{OptionLabel(nameof(ApplicantInfo.RightsScope), info?.RightsScope)}");
+        builder.AppendLine($"部分权利权项说明：{OrBlank(info?.PartialRightsDescription)}");
+        builder.AppendLine();
+
+        builder.AppendLine("四、软件功能和技术特点");
+        builder.AppendLine($"硬件环境：{info?.DevelopmentEnvironment}");
+        builder.AppendLine($"软件环境：{info?.RuntimeEnvironment}");
+        builder.AppendLine($"编程语言：{info?.ProgrammingLanguages}");
+        builder.AppendLine($"源程序量：{info?.SourceProgramAmount}");
         builder.AppendLine($"软件用途：{request.Purpose}");
         builder.AppendLine();
         builder.AppendLine("功能简介：");
         builder.AppendLine(request.FunctionSummary);
         builder.AppendLine();
+
+        builder.AppendLine("五、软件鉴别材料与申请办理");
+        builder.AppendLine($"鉴别材料交存方式：{OptionLabel(nameof(ApplicantInfo.DepositMode), info?.DepositMode)}");
+        builder.AppendLine($"申请办理方式：{OptionLabel(nameof(ApplicantInfo.ApplicationHandlingMethod), info?.ApplicationHandlingMethod)}");
+        builder.AppendLine();
+
         builder.AppendLine("检测到的技术栈：" + (request.Technologies.Count == 0 ? "未识别" : string.Join("、", request.Technologies)));
         builder.AppendLine("识别到的入口点：" + (request.Entrypoints.Count == 0 ? "未识别" : string.Join("、", request.Entrypoints)));
         builder.AppendLine();
         builder.AppendLine($"规则版本：{request.RulesVersion}");
         builder.AppendLine($"生成时间：{request.GeneratedAt:yyyy-MM-dd HH:mm:ss zzz}");
         builder.AppendLine($"说明：{request.RulesSource}");
+        builder.AppendLine($"选项依据：{ApplicantOptionCatalog.Source}");
 
         var bytes = new UTF8Encoding(encoderShouldEmitUTF8Identifier: true).GetBytes(builder.ToString());
         return new GeneratedDocument("申请表信息.txt", "正式资料/申请表信息.txt", "text/plain; charset=utf-8", bytes);
+    }
+
+    /// <summary>空值占位，避免材料里出现「软件简称：」这类空行。</summary>
+    private static string OrBlank(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? "【待填写】" : value.Trim();
+
+    /// <summary>选项字段显示为官方中文标签；无法识别时回退为原值。</summary>
+    private static string OptionLabel(string field, string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return "【待选择】";
+        }
+
+        return ApplicantOptionCatalog.LabelOf(field, value) ?? value.Trim();
     }
 
     private static GeneratedDocument BuildOperationManual(MaterialGenerationRequest request, MaterialRules rules)
@@ -128,9 +171,9 @@ public sealed class MaterialDocumentGenerator(
             }
 
             DocxWriter.AddHeading(document, "三、运行环境", 1);
-            DocxWriter.AddParagraph(document, $"开发环境：{request.DevelopmentEnvironment}");
-            DocxWriter.AddParagraph(document, $"运行环境：{request.RuntimeEnvironment}");
-            DocxWriter.AddParagraph(document, $"编程语言：{request.ProgrammingLanguages}");
+            DocxWriter.AddParagraph(document, $"硬件环境：{request.Applicant?.DevelopmentEnvironment}");
+            DocxWriter.AddParagraph(document, $"软件环境：{request.Applicant?.RuntimeEnvironment}");
+            DocxWriter.AddParagraph(document, $"编程语言：{request.Applicant?.ProgrammingLanguages}");
             DocxWriter.AddParagraph(document, "检测到的技术栈：" + (request.Technologies.Count == 0 ? "未识别" : string.Join("、", request.Technologies)));
 
             DocxWriter.AddHeading(document, "四、安装与启动", 1);
@@ -283,21 +326,34 @@ public sealed class MaterialDocumentGenerator(
 
     private static GeneratedDocument BuildApplicantDraft(MaterialGenerationRequest request)
     {
+        var info = request.Applicant;
         var payload = new
         {
             软件全称 = request.SoftwareFullName,
+            软件简称 = info?.SoftwareAbbreviation,
             版本号 = request.SoftwareVersion,
-            著作权人 = request.CopyrightOwner,
-            开发完成日期 = request.CompletionDate,
-            首次发表状态 = request.FirstPublicationStatus,
-            首次发表日期 = request.FirstPublicationDate,
-            开发方式 = request.DevelopmentMode,
-            权利取得方式 = request.RightsAcquisitionMethod,
-            开发环境 = request.DevelopmentEnvironment,
-            运行环境 = request.RuntimeEnvironment,
-            编程语言 = request.ProgrammingLanguages,
-            源程序量 = request.SourceProgramAmount,
-            功能简介 = request.FunctionSummary
+            分类号 = info?.ClassificationCode,
+            著作权人 = info?.CopyrightOwner,
+            著作权人类别 = OptionLabel(nameof(ApplicantInfo.OwnerType), info?.OwnerType),
+            软件来源 = OptionLabel(nameof(ApplicantInfo.SoftwareSource), info?.SoftwareSource),
+            修改说明 = info?.ModificationDescription,
+            原登记号 = info?.OriginalRegistrationNumber,
+            开发方式 = OptionLabel(nameof(ApplicantInfo.DevelopmentMode), info?.DevelopmentMode),
+            开发完成日期 = info?.CompletionDate,
+            发表状态 = OptionLabel(nameof(ApplicantInfo.FirstPublicationStatus), info?.FirstPublicationStatus),
+            首次发表日期 = info?.FirstPublicationDate,
+            首次发表地点 = info?.FirstPublicationPlace,
+            权利取得方式 = OptionLabel(nameof(ApplicantInfo.RightsAcquisitionMethod), info?.RightsAcquisitionMethod),
+            权利范围 = OptionLabel(nameof(ApplicantInfo.RightsScope), info?.RightsScope),
+            部分权利权项说明 = info?.PartialRightsDescription,
+            硬件环境 = info?.DevelopmentEnvironment,
+            软件环境 = info?.RuntimeEnvironment,
+            编程语言 = info?.ProgrammingLanguages,
+            源程序量 = info?.SourceProgramAmount,
+            鉴别材料交存方式 = OptionLabel(nameof(ApplicantInfo.DepositMode), info?.DepositMode),
+            申请办理方式 = OptionLabel(nameof(ApplicantInfo.ApplicationHandlingMethod), info?.ApplicationHandlingMethod),
+            功能简介 = request.FunctionSummary,
+            选项依据 = ApplicantOptionCatalog.Source
         };
 
         var bytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(payload, JsonOptions));

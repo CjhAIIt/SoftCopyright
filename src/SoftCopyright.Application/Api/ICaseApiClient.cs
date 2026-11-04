@@ -52,6 +52,9 @@ public interface ICaseApiClient
 
     Task<ApplicantInfoDto> SaveApplicantInfoAsync(Guid id, UpdateApplicantInfoRequest request, CancellationToken ct);
 
+    /// <summary>取申请信息的选项目录（官方申请表里的受约束候选项）。</summary>
+    Task<ApplicantOptionCatalogDto> GetApplicantOptionsAsync(CancellationToken ct);
+
     Task<IReadOnlyList<CodeCandidateDto>> GetCodeCandidatesAsync(Guid id, CancellationToken ct);
 
     Task<string?> PreviewCodeAsync(Guid id, string path, int maxLines, CancellationToken ct);

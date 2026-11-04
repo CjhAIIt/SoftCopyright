@@ -38,6 +38,10 @@ public static class CaseEndpoints
         app.MapGet("/api/flows/{kind:regex(^(SoftwareCopyright|Patent)$)}", (MaterialKind kind, MaterialFlowRegistry flows) =>
             Results.Ok(Mapping.ToDto(flows.Get(kind))));
 
+        // 申请信息选项目录：官方申请表里本该是选项的字段，前端据此渲染下拉项，不在前端硬编码候选项。
+        app.MapGet("/api/softcopyright/applicant-options", () =>
+            Results.Ok(Mapping.ToApplicantOptions()));
+
         var group = app.MapGroup("/api/cases")
             .RequireAuthorization()
             .AddEndpointFilter<CaseOwnershipFilter>();

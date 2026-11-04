@@ -40,14 +40,15 @@ public sealed class CodeMaterialRules
 /// <summary>申请字段规则。</summary>
 public sealed class FieldRules
 {
-    /// <summary>必填字段。</summary>
+    /// <summary>
+    /// 必填的自由文本字段。选项型字段的必填性由
+    /// <see cref="ApplicantOptionCatalog" /> 中的字段定义决定，不在此重复列出。
+    /// </summary>
     public string[] RequiredFields { get; set; } =
     [
         nameof(ApplicantInfo.SoftwareFullName),
         nameof(ApplicantInfo.VersionNumber),
         nameof(ApplicantInfo.CopyrightOwner),
-        nameof(ApplicantInfo.DevelopmentMode),
-        nameof(ApplicantInfo.RightsAcquisitionMethod),
         nameof(ApplicantInfo.DevelopmentEnvironment),
         nameof(ApplicantInfo.RuntimeEnvironment),
         nameof(ApplicantInfo.ProgrammingLanguages),
@@ -59,11 +60,20 @@ public sealed class FieldRules
     public string[] LegalOnlyFields { get; set; } =
     [
         nameof(ApplicantInfo.CopyrightOwner),
+        nameof(ApplicantInfo.OwnerType),
+        nameof(ApplicantInfo.SoftwareSource),
+        nameof(ApplicantInfo.ModificationDescription),
+        nameof(ApplicantInfo.OriginalRegistrationNumber),
         nameof(ApplicantInfo.DevelopmentMode),
         nameof(ApplicantInfo.RightsAcquisitionMethod),
+        nameof(ApplicantInfo.RightsScope),
+        nameof(ApplicantInfo.PartialRightsDescription),
         nameof(ApplicantInfo.CompletionDate),
         nameof(ApplicantInfo.FirstPublicationStatus),
-        nameof(ApplicantInfo.FirstPublicationDate)
+        nameof(ApplicantInfo.FirstPublicationDate),
+        nameof(ApplicantInfo.FirstPublicationPlace),
+        nameof(ApplicantInfo.DepositMode),
+        nameof(ApplicantInfo.ApplicationHandlingMethod)
     ];
 
     /// <summary>字段最大长度。</summary>

@@ -165,6 +165,16 @@ public sealed record ApplicantInfoDto(
     string ProgrammingLanguages,
     string SourceProgramAmount,
     string FunctionSummary,
+    string OwnerType,
+    string SoftwareSource,
+    string? ModificationDescription,
+    string? OriginalRegistrationNumber,
+    string RightsScope,
+    string? PartialRightsDescription,
+    string? FirstPublicationPlace,
+    string DepositMode,
+    string ApplicationHandlingMethod,
+    string? ClassificationCode,
     IReadOnlyDictionary<string, string> FieldSources,
     string RulesVersion,
     int RowVersion,
@@ -186,7 +196,50 @@ public sealed record UpdateApplicantInfoRequest(
     string ProgrammingLanguages,
     string SourceProgramAmount,
     string FunctionSummary,
+    string OwnerType,
+    string SoftwareSource,
+    string? ModificationDescription,
+    string? OriginalRegistrationNumber,
+    string RightsScope,
+    string? PartialRightsDescription,
+    string? FirstPublicationPlace,
+    string DepositMode,
+    string ApplicationHandlingMethod,
+    string? ClassificationCode,
     int ExpectedRowVersion);
+
+/// <summary>申请表中一个受约束候选项。</summary>
+public sealed record ApplicantOptionDto(string Value, string Label, string? Note);
+
+/// <summary>申请表中一个选项型字段。</summary>
+public sealed record ApplicantOptionFieldDto(
+    string Field,
+    string Label,
+    string Description,
+    bool Required,
+    IReadOnlyList<ApplicantOptionDto> Options);
+
+/// <summary>条件必填规则：某字段取特定选项时，另一字段必须填写。</summary>
+public sealed record ApplicantConditionDto(
+    string Field,
+    string Value,
+    string RequiredField,
+    string Reason);
+
+/// <summary>跨字段取值约束。</summary>
+public sealed record ApplicantConstraintDto(
+    string Field,
+    string Value,
+    string RelatedField,
+    IReadOnlyList<string> AllowedValues,
+    string Reason);
+
+/// <summary>选项目录：前端据此渲染受约束的下拉项，不在前端硬编码候选项。</summary>
+public sealed record ApplicantOptionCatalogDto(
+    string Source,
+    IReadOnlyList<ApplicantOptionFieldDto> Fields,
+    IReadOnlyList<ApplicantConditionDto> Conditions,
+    IReadOnlyList<ApplicantConstraintDto> Constraints);
 
 /// <summary>代码候选文件 DTO。</summary>
 public sealed record CodeCandidateDto(

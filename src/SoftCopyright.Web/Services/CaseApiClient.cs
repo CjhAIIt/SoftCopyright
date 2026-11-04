@@ -133,6 +133,9 @@ public sealed class CaseApiClient(HttpClient http) : ICaseApiClient
     public async Task<ApplicantInfoDto?> GetApplicantInfoAsync(Guid id, CancellationToken ct) =>
         await GetAsync<ApplicantInfoDto>($"/api/cases/{id}/applicant-info", ct);
 
+    public async Task<ApplicantOptionCatalogDto> GetApplicantOptionsAsync(CancellationToken ct) =>
+        (await GetAsync<ApplicantOptionCatalogDto>("/api/softcopyright/applicant-options", ct))!;
+
     public async Task<ApplicantInfoDto> SaveApplicantInfoAsync(Guid id, UpdateApplicantInfoRequest request, CancellationToken ct)
     {
         var response = await http.PutAsJsonAsync($"/api/cases/{id}/applicant-info", request, Options, ct);

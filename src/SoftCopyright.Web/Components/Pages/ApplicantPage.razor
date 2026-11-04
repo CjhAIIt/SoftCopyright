@@ -20,7 +20,10 @@ else
 <div class="page-head">
     <div>
         <h1>申请信息</h1>
-        <div class="sub">带 <span class="required">*</span> 的字段为必填。法律与权属字段不会由系统预填，必须由申请人填写并确认。</div>
+        <div class="sub">
+            带 <span class="required">*</span> 的字段为必填。标有「官方规定选项」的字段在本页只能从规定候选项中选择，
+            不可自由填写；法律与权属字段不会由系统预填，必须由申请人填写并确认。
+        </div>
     </div>
     <div class="actions">
         <button class="btn" disabled="@_busy" @onclick="SaveAsync">保存</button>
@@ -36,103 +39,269 @@ else
 {
     <div class="alert alert-ok">@_message</div>
 }
+@if (_catalog is not null)
+{
+    <div class="alert alert-muted small">
+        <b>选项依据：</b>@_catalog.Source
+    </div>
+}
 
 <div class="card">
-    <div class="grid-2">
-        <label class="field">
-            <span>软件全称 <span class="required">*</span></span>
-            <input type="text" @bind="_form.SoftwareFullName" />
-            <span class="hint">建议与代码仓库中的项目名称保持一致。</span>
-        </label>
-        <label class="field">
-            <span>软件简称</span>
-            <input type="text" @bind="_form.SoftwareAbbreviation" />
-            <span class="hint">如适用。</span>
-        </label>
+    @if (_catalog is null)
+    {
+        <div class="empty">正在载入申请信息选项目录……</div>
+    }
+    else
+    {
+    <div class="form-section">
+        <h3><span class="idx">一</span>软件基本信息</h3>
+        <div class="grid-2">
+            <label class="field">
+                <span>软件全称 <span class="required">*</span></span>
+                <input type="text" @bind="_form.SoftwareFullName" />
+                <span class="hint">应简短明确、针对性强，建议与代码仓库中的项目名称保持一致；不得以「工具」「计算」「系列」等结尾。</span>
+            </label>
+            <label class="field">
+                <span>软件简称</span>
+                <input type="text" @bind="_form.SoftwareAbbreviation" placeholder="没有简称请留空" />
+                <span class="hint">不得与软件全称完全相同。</span>
+            </label>
+
+            <label class="field">
+                <span>版本号 <span class="required">*</span></span>
+                <input type="text" @bind="_form.VersionNumber" placeholder="V1.0" />
+                <span class="hint">建议按规范填写，如 V1.0 或 1.0；鉴别材料页眉的版本号须与此处一致。</span>
+            </label>
+            <label class="field">
+                <span>分类号</span>
+                <input type="text" @bind="_form.ClassificationCode" placeholder="×××××-××××" />
+                <span class="hint">按 GB/T 13702 软件分类代码（5 位）与 GB/T 4754 国民经济行业分类代码（4 位）填写。</span>
+            </label>
+
+            <label class="field">
+                <span>著作权人 <span class="required">*</span></span>
+                <input type="text" @bind="_form.CopyrightOwner" />
+                <span class="hint">姓名或名称如实填写，必须由申请人填写，系统不会推断。</span>
+            </label>
+            <label class="field">
+                <span>著作权人类别 <span class="required">*</span> <span class="badge badge-info">官方规定选项</span></span>
+                <select @bind="_form.OwnerType">
+                    <option value="">请选择</option>
+                    @foreach (var option in OptionsOf(nameof(ApplicantForm.OwnerType)))
+                    {
+                        <option value="@option.Value">@option.Label</option>
+                    }
+                </select>
+                <span class="opt-note">@DescriptionOf(nameof(ApplicantForm.OwnerType))</span>
+                <span class="opt-note">@OptionNote(nameof(ApplicantForm.OwnerType))</span>
+            </label>
+        </div>
+    </div>
+
+    <div class="form-section">
+        <h3><span class="idx">二</span>软件作品说明</h3>
+        <div class="grid-2">
+            <label class="field">
+                <span>软件来源 <span class="required">*</span> <span class="badge badge-info">官方规定选项</span></span>
+                <select @bind="_form.SoftwareSource">
+                    <option value="">请选择</option>
+                    @foreach (var option in OptionsOf(nameof(ApplicantForm.SoftwareSource)))
+                    {
+                        <option value="@option.Value">@option.Label</option>
+                    }
+                </select>
+                <span class="opt-note">@DescriptionOf(nameof(ApplicantForm.SoftwareSource))</span>
+                <span class="opt-note">@OptionNote(nameof(ApplicantForm.SoftwareSource))</span>
+            </label>
+            <label class="field">
+                <span>开发方式 <span class="required">*</span> <span class="badge badge-info">官方规定选项</span></span>
+                <select @bind="_form.DevelopmentMode">
+                    <option value="">请选择</option>
+                    @foreach (var option in OptionsOf(nameof(ApplicantForm.DevelopmentMode)))
+                    {
+                        <option value="@option.Value">@option.Label</option>
+                    }
+                </select>
+                <span class="opt-note">@DescriptionOf(nameof(ApplicantForm.DevelopmentMode))</span>
+                <span class="opt-note">@OptionNote(nameof(ApplicantForm.DevelopmentMode))</span>
+            </label>
+
+            <label class="field">
+                <span>开发完成日期</span>
+                <input type="text" @bind="_form.CompletionDate" placeholder="YYYY-MM-DD" />
+                <span class="hint">指将软件全部固定在某种有形载体上的日期。</span>
+            </label>
+            <label class="field">
+                <span>发表状态 <span class="required">*</span> <span class="badge badge-info">官方规定选项</span></span>
+                <select @bind="_form.FirstPublicationStatus">
+                    <option value="">请选择</option>
+                    @foreach (var option in OptionsOf(nameof(ApplicantForm.FirstPublicationStatus)))
+                    {
+                        <option value="@option.Value">@option.Label</option>
+                    }
+                </select>
+                <span class="opt-note">@DescriptionOf(nameof(ApplicantForm.FirstPublicationStatus))</span>
+                <span class="opt-note">@OptionNote(nameof(ApplicantForm.FirstPublicationStatus))</span>
+            </label>
+
+            @if (IsRequired(nameof(ApplicantForm.FirstPublicationDate)))
+            {
+                <label class="field">
+                    <span>首次发表日期 <span class="required">*</span></span>
+                    <input type="text" @bind="_form.FirstPublicationDate" placeholder="YYYY-MM-DD" />
+                    <span class="hint">软件已发表时必填。</span>
+                </label>
+            }
+            @if (IsRequired(nameof(ApplicantForm.FirstPublicationPlace)))
+            {
+                <label class="field">
+                    <span>首次发表地点 <span class="required">*</span></span>
+                    <input type="text" @bind="_form.FirstPublicationPlace" placeholder="如：广东省深圳市" />
+                    <span class="hint">软件已发表时必填。</span>
+                </label>
+            }
+            @if (IsRequired(nameof(ApplicantForm.ModificationDescription)))
+            {
+                <label class="field">
+                    <span>修改说明 <span class="required">*</span></span>
+                    <textarea @bind="_form.ModificationDescription" placeholder="说明本次登记软件相对原版本的修改内容"></textarea>
+                    <span class="hint">软件来源为「修改软件」类时必填。</span>
+                </label>
+            }
+        </div>
+    </div>
+
+    <div class="form-section">
+        <h3><span class="idx">三</span>权利说明</h3>
+        <div class="grid-2">
+            <label class="field">
+                <span>权利取得方式 <span class="required">*</span> <span class="badge badge-info">官方规定选项</span></span>
+                <select @bind="_form.RightsAcquisitionMethod">
+                    <option value="">请选择</option>
+                    @foreach (var option in OptionsOf(nameof(ApplicantForm.RightsAcquisitionMethod)))
+                    {
+                        <option value="@option.Value">@option.Label</option>
+                    }
+                </select>
+                <span class="opt-note">@DescriptionOf(nameof(ApplicantForm.RightsAcquisitionMethod))</span>
+                <span class="opt-note">@OptionNote(nameof(ApplicantForm.RightsAcquisitionMethod))</span>
+                @if (HasConstraint())
+                {
+                    <span class="opt-note warn">@ConstraintHint()</span>
+                }
+            </label>
+            <label class="field">
+                <span>权利范围 <span class="required">*</span> <span class="badge badge-info">官方规定选项</span></span>
+                <select @bind="_form.RightsScope">
+                    <option value="">请选择</option>
+                    @foreach (var option in OptionsOf(nameof(ApplicantForm.RightsScope)))
+                    {
+                        <option value="@option.Value">@option.Label</option>
+                    }
+                </select>
+                <span class="opt-note">@DescriptionOf(nameof(ApplicantForm.RightsScope))</span>
+                <span class="opt-note">@OptionNote(nameof(ApplicantForm.RightsScope))</span>
+            </label>
+
+            @if (IsRequired(nameof(ApplicantForm.PartialRightsDescription)))
+            {
+                <label class="field">
+                    <span>部分权利权项说明 <span class="required">*</span></span>
+                    <textarea @bind="_form.PartialRightsDescription" placeholder="注明具体享有的权项，如：复制权、发行权"></textarea>
+                    <span class="hint">权利范围为「部分权利」时必填。</span>
+                </label>
+            }
+            @if (IsRequired(nameof(ApplicantForm.OriginalRegistrationNumber)))
+            {
+                <label class="field">
+                    <span>原登记号 <span class="required">*</span></span>
+                    <input type="text" @bind="_form.OriginalRegistrationNumber" placeholder="如：2024SR0123456" />
+                    <span class="hint">前期版本已登记或权利为继受取得时填写。</span>
+                </label>
+            }
+        </div>
+    </div>
+
+    <div class="form-section">
+        <h3><span class="idx">四</span>软件功能和技术特点</h3>
+        <div class="grid-2">
+            <label class="field">
+                <span>硬件环境 <span class="required">*</span></span>
+                <input type="text" @bind="_form.DevelopmentEnvironment" placeholder="例如：Windows 11 + .NET 10" />
+                <span class="hint">开发和运行登记软件的计算机硬件与专用设备。</span>
+            </label>
+            <label class="field">
+                <span>软件环境 <span class="required">*</span></span>
+                <input type="text" @bind="_form.RuntimeEnvironment" placeholder="例如：Windows 10 及以上" />
+                <span class="hint">操作系统、支持软件的名称及版本号。</span>
+            </label>
+
+            <label class="field">
+                <span>编程语言 <span class="required">*</span></span>
+                <input type="text" @bind="_form.ProgrammingLanguages" placeholder="例如：C#、JavaScript" />
+            </label>
+            <label class="field">
+                <span>源程序量 <span class="required">*</span></span>
+                <input type="text" @bind="_form.SourceProgramAmount" placeholder="例如：3200 行" />
+                <span class="hint">用于与材料中的实际代码行数交叉核对。</span>
+            </label>
+        </div>
 
         <label class="field">
-            <span>版本号 <span class="required">*</span></span>
-            <input type="text" @bind="_form.VersionNumber" />
-            <span class="hint">请按官方最新要求确认版本写法。</span>
-        </label>
-        <label class="field">
-            <span>著作权人 <span class="required">*</span></span>
-            <input type="text" @bind="_form.CopyrightOwner" />
-            <span class="hint">必须由申请人填写，系统不会推断。</span>
-        </label>
-
-        <label class="field">
-            <span>开发方式 <span class="required">*</span></span>
-            <input type="text" @bind="_form.DevelopmentMode" placeholder="例如：独立开发" />
-            <span class="hint">法律事实，必须由申请人确认。</span>
-        </label>
-        <label class="field">
-            <span>权利取得方式 <span class="required">*</span></span>
-            <input type="text" @bind="_form.RightsAcquisitionMethod" placeholder="例如：原始取得" />
-            <span class="hint">法律事实，必须由申请人确认。</span>
-        </label>
-
-        <label class="field">
-            <span>开发完成日期</span>
-            <input type="text" @bind="_form.CompletionDate" placeholder="YYYY-MM-DD" />
-            <span class="hint">请按官方最新要求确认。</span>
-        </label>
-        <label class="field">
-            <span>首次发表状态</span>
-            <input type="text" @bind="_form.FirstPublicationStatus" placeholder="例如：未发表" />
-        </label>
-
-        <label class="field">
-            <span>首次发表日期</span>
-            <input type="text" @bind="_form.FirstPublicationDate" placeholder="YYYY-MM-DD（未发表可留空）" />
-        </label>
-        <label class="field">
-            <span>源程序量 <span class="required">*</span></span>
-            <input type="text" @bind="_form.SourceProgramAmount" placeholder="例如：3200 行" />
-            <span class="hint">用于与材料中的实际代码行数交叉核对。</span>
-        </label>
-
-        <label class="field">
-            <span>开发环境 <span class="required">*</span></span>
-            <input type="text" @bind="_form.DevelopmentEnvironment" placeholder="例如：Windows 11 + .NET 10" />
-        </label>
-        <label class="field">
-            <span>运行环境 <span class="required">*</span></span>
-            <input type="text" @bind="_form.RuntimeEnvironment" placeholder="例如：Windows 10 及以上" />
-        </label>
-
-        <label class="field">
-            <span>编程语言 <span class="required">*</span></span>
-            <input type="text" @bind="_form.ProgrammingLanguages" placeholder="例如：C#、JavaScript" />
-        </label>
-        <label class="field">
-            <span>字段来源</span>
-            <input type="text" value="@_sourceSummary" disabled />
-            <span class="hint">来源由系统自动记录，无法手工修改。</span>
+            <span>功能简介 <span class="required">*</span></span>
+            <textarea @bind="_form.FunctionSummary" placeholder="简述开发目的、面向领域/行业、主要功能与技术特点"></textarea>
+            <span class="hint">官方对本栏有字数上限要求，请按官方最新要求核对后再提交。</span>
         </label>
     </div>
 
-    <label class="field">
-        <span>功能简介 <span class="required">*</span></span>
-        <textarea @bind="_form.FunctionSummary" placeholder="简述软件的主要功能与用途"></textarea>
-    </label>
+    <div class="form-section">
+        <h3><span class="idx">五</span>软件鉴别材料与申请办理</h3>
+        <div class="grid-2">
+            <label class="field">
+                <span>鉴别材料交存方式 <span class="required">*</span> <span class="badge badge-info">官方规定选项</span></span>
+                <select @bind="_form.DepositMode">
+                    <option value="">请选择</option>
+                    @foreach (var option in OptionsOf(nameof(ApplicantForm.DepositMode)))
+                    {
+                        <option value="@option.Value">@option.Label</option>
+                    }
+                </select>
+                <span class="opt-note">@DescriptionOf(nameof(ApplicantForm.DepositMode))</span>
+                <span class="opt-note">@OptionNote(nameof(ApplicantForm.DepositMode))</span>
+            </label>
+            <label class="field">
+                <span>申请办理方式 <span class="required">*</span> <span class="badge badge-info">官方规定选项</span></span>
+                <select @bind="_form.ApplicationHandlingMethod">
+                    <option value="">请选择</option>
+                    @foreach (var option in OptionsOf(nameof(ApplicantForm.ApplicationHandlingMethod)))
+                    {
+                        <option value="@option.Value">@option.Label</option>
+                    }
+                </select>
+                <span class="opt-note">@DescriptionOf(nameof(ApplicantForm.ApplicationHandlingMethod))</span>
+                <span class="opt-note">@OptionNote(nameof(ApplicantForm.ApplicationHandlingMethod))</span>
+            </label>
+        </div>
+    </div>
 
     @if (_sources.Count > 0)
     {
-        <details>
+        <details class="form-section">
             <summary class="small muted">查看字段来源明细</summary>
+            <div class="small muted" style="margin:8px 0 10px">字段来源：@_sourceSummary</div>
             <table>
                 <tbody>
                 @foreach (var entry in _sources)
                 {
                     <tr>
-                        <td style="width:220px">@entry.Key</td>
+                        <td style="width:240px">@entry.Key</td>
                         <td class="small">@entry.Value</td>
                     </tr>
                 }
                 </tbody>
             </table>
         </details>
+    }
     }
 </div>
 
@@ -143,6 +312,7 @@ else
 
     private ApplicantForm _form = new();
 
+    private ApplicantOptionCatalogDto? _catalog;
     private Dictionary<string, string> _sources = new();
     private bool _busy;
     private bool _wrongFlow;
@@ -167,6 +337,8 @@ else
                 return;
             }
 
+            _catalog ??= await Api.GetApplicantOptionsAsync(CancellationToken.None);
+
             var info = await Api.GetApplicantInfoAsync(CaseId, CancellationToken.None);
             if (info is null)
             {
@@ -178,16 +350,26 @@ else
                 SoftwareFullName = info.SoftwareFullName,
                 SoftwareAbbreviation = info.SoftwareAbbreviation,
                 VersionNumber = info.VersionNumber,
+                ClassificationCode = info.ClassificationCode,
                 CopyrightOwner = info.CopyrightOwner,
+                OwnerType = info.OwnerType,
+                SoftwareSource = info.SoftwareSource,
+                ModificationDescription = info.ModificationDescription,
+                OriginalRegistrationNumber = info.OriginalRegistrationNumber,
                 DevelopmentMode = info.DevelopmentMode,
                 RightsAcquisitionMethod = info.RightsAcquisitionMethod,
+                RightsScope = info.RightsScope,
+                PartialRightsDescription = info.PartialRightsDescription,
                 CompletionDate = info.CompletionDate,
                 FirstPublicationStatus = info.FirstPublicationStatus,
                 FirstPublicationDate = info.FirstPublicationDate,
+                FirstPublicationPlace = info.FirstPublicationPlace,
                 DevelopmentEnvironment = info.DevelopmentEnvironment,
                 RuntimeEnvironment = info.RuntimeEnvironment,
                 ProgrammingLanguages = info.ProgrammingLanguages,
                 SourceProgramAmount = info.SourceProgramAmount,
+                DepositMode = info.DepositMode,
+                ApplicationHandlingMethod = info.ApplicationHandlingMethod,
                 FunctionSummary = info.FunctionSummary,
                 ExpectedRowVersion = info.RowVersion
             };
@@ -223,6 +405,16 @@ else
                 _form.ProgrammingLanguages,
                 _form.SourceProgramAmount,
                 _form.FunctionSummary,
+                _form.OwnerType,
+                _form.SoftwareSource,
+                _form.ModificationDescription,
+                _form.OriginalRegistrationNumber,
+                _form.RightsScope,
+                _form.PartialRightsDescription,
+                _form.FirstPublicationPlace,
+                _form.DepositMode,
+                _form.ApplicationHandlingMethod,
+                _form.ClassificationCode,
                 _form.ExpectedRowVersion);
 
             var saved = await Api.SaveApplicantInfoAsync(CaseId, request, CancellationToken.None);
@@ -263,4 +455,81 @@ else
             _busy = false;
         }
     }
+
+    // ── 选项目录渲染辅助 ──────────────────────────────────────────────────
+
+    private IReadOnlyList<ApplicantOptionDto> OptionsOf(string field) =>
+        _catalog?.Fields.FirstOrDefault(f => f.Field == field)?.Options ?? [];
+
+    private string DescriptionOf(string field) =>
+        _catalog?.Fields.FirstOrDefault(f => f.Field == field)?.Description ?? string.Empty;
+
+    private string? OptionNote(string field)
+    {
+        var value = ReadField(field);
+        return OptionsOf(field).FirstOrDefault(o => string.Equals(o.Value, value, StringComparison.OrdinalIgnoreCase))?.Note;
+    }
+
+    /// <summary>字段是否必填：本身必填，或被当前取值触发了条件必填规则。</summary>
+    private bool IsRequired(string field) =>
+        _catalog?.Fields.FirstOrDefault(f => f.Field == field)?.Required == true || IsConditionallyRequired(field);
+
+    private bool IsConditionallyRequired(string field) =>
+        _catalog?.Conditions.Any(c =>
+            c.RequiredField == field &&
+            string.Equals(ReadField(c.Field), c.Value, StringComparison.OrdinalIgnoreCase)) == true;
+
+    /// <summary>当前取值是否触发了跨字段约束（用于提示冲突）。</summary>
+    private bool HasConstraint() => _catalog?.Constraints.Any(c =>
+        string.Equals(ReadField(c.Field), c.Value, StringComparison.OrdinalIgnoreCase) &&
+        !string.IsNullOrWhiteSpace(ReadField(c.RelatedField)) &&
+        !c.AllowedValues.Contains(ReadField(c.RelatedField) ?? string.Empty, StringComparer.OrdinalIgnoreCase)) == true;
+
+    private string ConstraintHint()
+    {
+        var constraint = _catalog?.Constraints.FirstOrDefault(c =>
+            string.Equals(ReadField(c.Field), c.Value, StringComparison.OrdinalIgnoreCase) &&
+            !string.IsNullOrWhiteSpace(ReadField(c.RelatedField)) &&
+            !c.AllowedValues.Contains(ReadField(c.RelatedField) ?? string.Empty, StringComparer.OrdinalIgnoreCase));
+
+        if (constraint is null)
+        {
+            return string.Empty;
+        }
+
+        var related = OptionsOf(constraint.RelatedField)
+            .Where(o => constraint.AllowedValues.Contains(o.Value, StringComparer.OrdinalIgnoreCase))
+            .Select(o => o.Label);
+
+        return $"{constraint.Reason}（当前「{DescriptionOf(constraint.RelatedField)}」应选择：{string.Join("、", related)}）";
+    }
+
+    private string? ReadField(string field) => field switch
+    {
+        nameof(ApplicantForm.SoftwareFullName) => _form.SoftwareFullName,
+        nameof(ApplicantForm.SoftwareAbbreviation) => _form.SoftwareAbbreviation,
+        nameof(ApplicantForm.VersionNumber) => _form.VersionNumber,
+        nameof(ApplicantForm.ClassificationCode) => _form.ClassificationCode,
+        nameof(ApplicantForm.CopyrightOwner) => _form.CopyrightOwner,
+        nameof(ApplicantForm.OwnerType) => _form.OwnerType,
+        nameof(ApplicantForm.SoftwareSource) => _form.SoftwareSource,
+        nameof(ApplicantForm.ModificationDescription) => _form.ModificationDescription,
+        nameof(ApplicantForm.OriginalRegistrationNumber) => _form.OriginalRegistrationNumber,
+        nameof(ApplicantForm.DevelopmentMode) => _form.DevelopmentMode,
+        nameof(ApplicantForm.RightsAcquisitionMethod) => _form.RightsAcquisitionMethod,
+        nameof(ApplicantForm.RightsScope) => _form.RightsScope,
+        nameof(ApplicantForm.PartialRightsDescription) => _form.PartialRightsDescription,
+        nameof(ApplicantForm.CompletionDate) => _form.CompletionDate,
+        nameof(ApplicantForm.FirstPublicationStatus) => _form.FirstPublicationStatus,
+        nameof(ApplicantForm.FirstPublicationDate) => _form.FirstPublicationDate,
+        nameof(ApplicantForm.FirstPublicationPlace) => _form.FirstPublicationPlace,
+        nameof(ApplicantForm.DevelopmentEnvironment) => _form.DevelopmentEnvironment,
+        nameof(ApplicantForm.RuntimeEnvironment) => _form.RuntimeEnvironment,
+        nameof(ApplicantForm.ProgrammingLanguages) => _form.ProgrammingLanguages,
+        nameof(ApplicantForm.SourceProgramAmount) => _form.SourceProgramAmount,
+        nameof(ApplicantForm.DepositMode) => _form.DepositMode,
+        nameof(ApplicantForm.ApplicationHandlingMethod) => _form.ApplicationHandlingMethod,
+        nameof(ApplicantForm.FunctionSummary) => _form.FunctionSummary,
+        _ => null
+    };
 }

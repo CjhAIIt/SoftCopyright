@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SoftCopyright.Application.Contracts;
 using SoftCopyright.Application.Dtos;
+using SoftCopyright.Application.Validation;
 using SoftCopyright.Domain;
 using SoftCopyright.Domain.Contracts;
 using SoftCopyright.Domain.Options;
@@ -50,15 +51,25 @@ public sealed class ApplicantInfoService(
         entity.SoftwareAbbreviation = Trim(request.SoftwareAbbreviation);
         entity.VersionNumber = request.VersionNumber.Trim();
         entity.CopyrightOwner = request.CopyrightOwner.Trim();
-        entity.DevelopmentMode = request.DevelopmentMode.Trim();
-        entity.RightsAcquisitionMethod = request.RightsAcquisitionMethod.Trim();
+        entity.OwnerType = NormalizeOption(nameof(ApplicantInfo.OwnerType), request.OwnerType);
+        entity.SoftwareSource = NormalizeOption(nameof(ApplicantInfo.SoftwareSource), request.SoftwareSource);
+        entity.ModificationDescription = Trim(request.ModificationDescription);
+        entity.OriginalRegistrationNumber = Trim(request.OriginalRegistrationNumber);
+        entity.DevelopmentMode = NormalizeOption(nameof(ApplicantInfo.DevelopmentMode), request.DevelopmentMode);
+        entity.RightsAcquisitionMethod = NormalizeOption(nameof(ApplicantInfo.RightsAcquisitionMethod), request.RightsAcquisitionMethod);
+        entity.RightsScope = NormalizeOption(nameof(ApplicantInfo.RightsScope), request.RightsScope);
+        entity.PartialRightsDescription = Trim(request.PartialRightsDescription);
         entity.CompletionDate = Trim(request.CompletionDate);
-        entity.FirstPublicationStatus = request.FirstPublicationStatus.Trim();
+        entity.FirstPublicationStatus = NormalizeOption(nameof(ApplicantInfo.FirstPublicationStatus), request.FirstPublicationStatus);
         entity.FirstPublicationDate = Trim(request.FirstPublicationDate);
+        entity.FirstPublicationPlace = Trim(request.FirstPublicationPlace);
         entity.DevelopmentEnvironment = request.DevelopmentEnvironment.Trim();
         entity.RuntimeEnvironment = request.RuntimeEnvironment.Trim();
         entity.ProgrammingLanguages = request.ProgrammingLanguages.Trim();
         entity.SourceProgramAmount = request.SourceProgramAmount.Trim();
+        entity.DepositMode = NormalizeOption(nameof(ApplicantInfo.DepositMode), request.DepositMode);
+        entity.ApplicationHandlingMethod = NormalizeOption(nameof(ApplicantInfo.ApplicationHandlingMethod), request.ApplicationHandlingMethod);
+        entity.ClassificationCode = Trim(request.ClassificationCode);
         entity.FunctionSummary = request.FunctionSummary.Trim();
         entity.RulesVersion = _rules.Version;
         entity.UpdatedAt = now;
@@ -111,10 +122,42 @@ public sealed class ApplicantInfoService(
             entity.ProgrammingLanguages,
             entity.SourceProgramAmount,
             entity.FunctionSummary,
+            entity.OwnerType,
+            entity.SoftwareSource,
+            entity.ModificationDescription,
+            entity.OriginalRegistrationNumber,
+            entity.RightsScope,
+            entity.PartialRightsDescription,
+            entity.FirstPublicationPlace,
+            entity.DepositMode,
+            entity.ApplicationHandlingMethod,
+            entity.ClassificationCode,
             sources,
             entity.RulesVersion,
             entity.RowVersion,
             confirmed);
+    }
+
+    /// <summary>
+    /// 把选项字段的任意写法归一化为规范选项码；留空视为尚未选择，
+    /// 出现不在候选项之内的取值时直接拒绝（数据完整性问题）。
+    /// </summary>
+    private static string NormalizeOption(string field, string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return string.Empty;
+        }
+
+        var normalized = ApplicantOptionCatalog.Normalize(field, raw);
+        if (normalized is null)
+        {
+            var label = ApplicantOptionCatalog.LabelOfField(field);
+            var allowed = string.Join("、", ApplicantOptionCatalog.OptionsOf(field).Select(o => o.Label));
+            throw new InputValidationException($"「{label}」的取值「{raw.Trim()}」不在允许的候选项之内。可选：{allowed}。");
+        }
+
+        return normalized;
     }
 
     private void Validate(UpdateApplicantInfoRequest request)
@@ -133,6 +176,46 @@ public sealed class ApplicantInfoService(
         {
             throw new InputValidationException($"功能简介长度不能超过 {_rules.Fields.MaxSummaryLength} 个字符。");
         }
+
+        // 选项值域与分类号格式：非法取值直接拒绝，避免脏数据落库。
+        var reader = new RequestFieldReader(request);
+        foreach (var issue in ApplicantOptionChecker.CheckBlocking(reader.Read))
+        {
+            throw new InputValidationException(issue.Message);
+        }
+    }
+
+    /// <summary>按字段名读取请求中的值，供选项检查器使用。</summary>
+    private sealed class RequestFieldReader(UpdateApplicantInfoRequest request)
+    {
+        public string? Read(string field) => field switch
+        {
+            nameof(ApplicantInfo.SoftwareFullName) => request.SoftwareFullName,
+            nameof(ApplicantInfo.SoftwareAbbreviation) => request.SoftwareAbbreviation,
+            nameof(ApplicantInfo.VersionNumber) => request.VersionNumber,
+            nameof(ApplicantInfo.CopyrightOwner) => request.CopyrightOwner,
+            nameof(ApplicantInfo.OwnerType) => request.OwnerType,
+            nameof(ApplicantInfo.SoftwareSource) => request.SoftwareSource,
+            nameof(ApplicantInfo.ModificationDescription) => request.ModificationDescription,
+            nameof(ApplicantInfo.OriginalRegistrationNumber) => request.OriginalRegistrationNumber,
+            nameof(ApplicantInfo.DevelopmentMode) => request.DevelopmentMode,
+            nameof(ApplicantInfo.RightsAcquisitionMethod) => request.RightsAcquisitionMethod,
+            nameof(ApplicantInfo.RightsScope) => request.RightsScope,
+            nameof(ApplicantInfo.PartialRightsDescription) => request.PartialRightsDescription,
+            nameof(ApplicantInfo.CompletionDate) => request.CompletionDate,
+            nameof(ApplicantInfo.FirstPublicationStatus) => request.FirstPublicationStatus,
+            nameof(ApplicantInfo.FirstPublicationDate) => request.FirstPublicationDate,
+            nameof(ApplicantInfo.FirstPublicationPlace) => request.FirstPublicationPlace,
+            nameof(ApplicantInfo.DevelopmentEnvironment) => request.DevelopmentEnvironment,
+            nameof(ApplicantInfo.RuntimeEnvironment) => request.RuntimeEnvironment,
+            nameof(ApplicantInfo.ProgrammingLanguages) => request.ProgrammingLanguages,
+            nameof(ApplicantInfo.SourceProgramAmount) => request.SourceProgramAmount,
+            nameof(ApplicantInfo.DepositMode) => request.DepositMode,
+            nameof(ApplicantInfo.ApplicationHandlingMethod) => request.ApplicationHandlingMethod,
+            nameof(ApplicantInfo.ClassificationCode) => request.ClassificationCode,
+            nameof(ApplicantInfo.FunctionSummary) => request.FunctionSummary,
+            _ => null
+        };
     }
 
     private static string BuildFieldSources(ApplicantInfo entity)
@@ -144,19 +227,34 @@ public sealed class ApplicantInfoService(
             sources[field] = string.IsNullOrWhiteSpace(value) ? "待填写" : "申请人输入";
         }
 
+        void MarkChoice(string field, string value)
+        {
+            sources[field] = string.IsNullOrWhiteSpace(value) ? "待选择" : "申请人选择";
+        }
+
         Mark(nameof(ApplicantInfo.SoftwareFullName), entity.SoftwareFullName);
         Mark(nameof(ApplicantInfo.SoftwareAbbreviation), entity.SoftwareAbbreviation ?? string.Empty);
         Mark(nameof(ApplicantInfo.VersionNumber), entity.VersionNumber);
         Mark(nameof(ApplicantInfo.CopyrightOwner), entity.CopyrightOwner);
-        Mark(nameof(ApplicantInfo.DevelopmentMode), entity.DevelopmentMode);
-        Mark(nameof(ApplicantInfo.RightsAcquisitionMethod), entity.RightsAcquisitionMethod);
+        MarkChoice(nameof(ApplicantInfo.OwnerType), entity.OwnerType);
+        MarkChoice(nameof(ApplicantInfo.SoftwareSource), entity.SoftwareSource);
+        Mark(nameof(ApplicantInfo.ModificationDescription), entity.ModificationDescription ?? string.Empty);
+        Mark(nameof(ApplicantInfo.OriginalRegistrationNumber), entity.OriginalRegistrationNumber ?? string.Empty);
+        MarkChoice(nameof(ApplicantInfo.DevelopmentMode), entity.DevelopmentMode);
+        MarkChoice(nameof(ApplicantInfo.RightsAcquisitionMethod), entity.RightsAcquisitionMethod);
+        MarkChoice(nameof(ApplicantInfo.RightsScope), entity.RightsScope);
+        Mark(nameof(ApplicantInfo.PartialRightsDescription), entity.PartialRightsDescription ?? string.Empty);
         Mark(nameof(ApplicantInfo.CompletionDate), entity.CompletionDate ?? string.Empty);
-        Mark(nameof(ApplicantInfo.FirstPublicationStatus), entity.FirstPublicationStatus);
+        MarkChoice(nameof(ApplicantInfo.FirstPublicationStatus), entity.FirstPublicationStatus);
         Mark(nameof(ApplicantInfo.FirstPublicationDate), entity.FirstPublicationDate ?? string.Empty);
+        Mark(nameof(ApplicantInfo.FirstPublicationPlace), entity.FirstPublicationPlace ?? string.Empty);
         Mark(nameof(ApplicantInfo.DevelopmentEnvironment), entity.DevelopmentEnvironment);
         Mark(nameof(ApplicantInfo.RuntimeEnvironment), entity.RuntimeEnvironment);
         Mark(nameof(ApplicantInfo.ProgrammingLanguages), entity.ProgrammingLanguages);
         Mark(nameof(ApplicantInfo.SourceProgramAmount), entity.SourceProgramAmount);
+        MarkChoice(nameof(ApplicantInfo.DepositMode), entity.DepositMode);
+        MarkChoice(nameof(ApplicantInfo.ApplicationHandlingMethod), entity.ApplicationHandlingMethod);
+        Mark(nameof(ApplicantInfo.ClassificationCode), entity.ClassificationCode ?? string.Empty);
         Mark(nameof(ApplicantInfo.FunctionSummary), entity.FunctionSummary);
 
         return System.Text.Json.JsonSerializer.Serialize(sources, Mapping.JsonOptions);

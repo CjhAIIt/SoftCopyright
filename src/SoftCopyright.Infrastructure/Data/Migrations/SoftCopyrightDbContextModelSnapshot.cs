@@ -25,8 +25,17 @@ namespace SoftCopyright.Infrastructure.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("char(36)");
 
+                    b.Property<string>("ApplicationHandlingMethod")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
+
                     b.Property<Guid>("CaseId")
                         .HasColumnType("char(36)");
+
+                    b.Property<string>("ClassificationCode")
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
 
                     b.Property<string>("CompletionDate")
                         .HasMaxLength(40)
@@ -37,6 +46,11 @@ namespace SoftCopyright.Infrastructure.Data.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("varchar(300)");
 
+                    b.Property<string>("DepositMode")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("varchar(60)");
+
                     b.Property<string>("DevelopmentEnvironment")
                         .IsRequired()
                         .HasMaxLength(1000)
@@ -44,8 +58,8 @@ namespace SoftCopyright.Infrastructure.Data.Migrations
 
                     b.Property<string>("DevelopmentMode")
                         .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
 
                     b.Property<string>("FieldSourcesJson")
                         .IsRequired()
@@ -54,6 +68,10 @@ namespace SoftCopyright.Infrastructure.Data.Migrations
                     b.Property<string>("FirstPublicationDate")
                         .HasMaxLength(40)
                         .HasColumnType("varchar(40)");
+
+                    b.Property<string>("FirstPublicationPlace")
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)");
 
                     b.Property<string>("FirstPublicationStatus")
                         .IsRequired()
@@ -65,6 +83,23 @@ namespace SoftCopyright.Infrastructure.Data.Migrations
                         .HasMaxLength(4000)
                         .HasColumnType("varchar(4000)");
 
+                    b.Property<string>("ModificationDescription")
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<string>("OriginalRegistrationNumber")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("OwnerType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
+
+                    b.Property<string>("PartialRightsDescription")
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
                     b.Property<string>("ProgrammingLanguages")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -72,8 +107,13 @@ namespace SoftCopyright.Infrastructure.Data.Migrations
 
                     b.Property<string>("RightsAcquisitionMethod")
                         .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
+
+                    b.Property<string>("RightsScope")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
 
                     b.Property<int>("RowVersion")
                         .HasColumnType("int");
@@ -96,6 +136,11 @@ namespace SoftCopyright.Infrastructure.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("varchar(200)");
+
+                    b.Property<string>("SoftwareSource")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
 
                     b.Property<string>("SourceProgramAmount")
                         .IsRequired()

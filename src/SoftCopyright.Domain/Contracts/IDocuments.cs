@@ -8,22 +8,17 @@ public interface IMaterialDocumentGenerator
 }
 
 /// <summary>材料生成请求。</summary>
+/// <remarks>
+/// 申请信息整体以 <see cref="ApplicantInfo" /> 实体携带，避免把二十多个申请字段摊平成一长串参数；
+/// 其中软件全称与版本号仍单独给出，因为生成时可能用案例名称兜底。
+/// </remarks>
 public sealed record MaterialGenerationRequest(
     Guid CaseId,
     string SoftwareFullName,
     string SoftwareVersion,
+    ApplicantInfo? Applicant,
     string Purpose,
     string FunctionSummary,
-    string CopyrightOwner,
-    string DevelopmentMode,
-    string RightsAcquisitionMethod,
-    string? CompletionDate,
-    string? FirstPublicationStatus,
-    string? FirstPublicationDate,
-    string DevelopmentEnvironment,
-    string RuntimeEnvironment,
-    string ProgrammingLanguages,
-    string SourceProgramAmount,
     IReadOnlyList<Fact<string>> Features,
     IReadOnlyList<string> Technologies,
     IReadOnlyList<string> Entrypoints,
