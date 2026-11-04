@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using SoftCopyright.Domain.Contracts;
 using SoftCopyright.ProjectScan.Adapters;
 using SoftCopyright.ProjectScan.Files;
+using SoftCopyright.ProjectScan.Git;
 using SoftCopyright.ProjectScan.Scanners;
 using SoftCopyright.ProjectScan.Zip;
 
@@ -14,6 +15,7 @@ public static class ProjectScanServiceExtensions
     {
         services.AddSingleton<ISafeArchiveExtractor, ZipExtractionService>();
         services.AddSingleton<IProjectFileReaderFactory, LocalProjectFileReaderFactory>();
+        services.AddSingleton<IGitRepositoryImporter, GitRepositoryImporter>();
 
         services.AddSingleton<IProjectAdapter, DotNetAdapter>();
         services.AddSingleton<IProjectAdapter, NodeAdapter>();

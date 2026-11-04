@@ -14,6 +14,7 @@ public static class ApplicationServiceExtensions
 
         services.AddScoped<ICaseService, CaseService>();
         services.AddScoped<ICaseUploadService, UploadService>();
+        services.AddScoped<IGitImportService, GitImportService>();
         services.AddScoped<IApplicantInfoService, ApplicantInfoService>();
         services.AddScoped<ICodeSelectionService, CodeSelectionService>();
         services.AddScoped<IConfirmationService, ConfirmationService>();

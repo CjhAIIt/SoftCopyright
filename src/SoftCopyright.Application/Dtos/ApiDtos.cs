@@ -15,7 +15,9 @@ public sealed record CaseSummaryDto(
     string? FailureReason,
     int ArtifactCount,
     int ConfirmedCount,
-    int TotalConfirmations);
+    int TotalConfirmations,
+    string? SourceRepositoryUrl = null,
+    string? SourceCommit = null);
 
 /// <summary>创建案例请求。</summary>
 public sealed record CreateCaseRequest(string? Name);
@@ -177,6 +179,13 @@ public sealed record ArtifactDto(
     DateTimeOffset CreatedAt,
     bool IsStale,
     string DownloadUrl);
+
+/// <summary>Git 导入结果 DTO。</summary>
+public sealed record GitImportResultDto(
+    string Url,
+    string? Commit,
+    int FileCount,
+    IReadOnlyList<string> Warnings);
 
 /// <summary>扫描摘要 DTO。</summary>
 public sealed record ScanSummaryDto(

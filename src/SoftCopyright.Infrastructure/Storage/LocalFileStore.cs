@@ -102,7 +102,7 @@ public sealed class LocalFileStore : IFileStore
             return;
         }
 
-        Directory.Delete(dir, recursive: true);
+        SoftCopyright.Domain.SafeFileSystem.DeleteDirectory(dir);
         _logger.LogInformation("已删除案例目录 {CaseId}", caseId);
     }
 

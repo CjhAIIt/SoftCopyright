@@ -7,7 +7,7 @@
 <div class="page-head">
     <div>
         <h1>导入仓库</h1>
-        <div class="sub">上传 ZIP 压缩包，系统只做只读静态分析，不会执行仓库中的任何脚本。</div>
+        <div class="sub">可以直接粘贴 GitHub / Gitee / GitLab 仓库地址，也可以上传 ZIP 压缩包。两种方式都只做只读静态分析，不会执行仓库中的任何脚本。</div>
     </div>
     <div class="actions">
         <button class="btn btn-primary" disabled="@_busy" @onclick="ScanAsync">开始扫描</button>
@@ -24,7 +24,44 @@
 }
 
 <div class="card">
-    <h2>上传代码仓库</h2>
+    <h2>从 Git 仓库导入</h2>
+    <p class="muted small">支持 GitHub、Gitee、GitLab 以及白名单内的自建 Git 服务。粘贴网页地址即可，会自动转换为克隆地址。</p>
+
+    <label class="field">
+        <span>仓库地址</span>
+        <input type="text" @bind="_gitUrl" placeholder="https://github.com/owner/repo 或 git@github.com:owner/repo.git" />
+    </label>
+
+    <div class="grid-2">
+        <label class="field">
+            <span>分支（可选）</span>
+            <input type="text" @bind="_gitBranch" placeholder="默认取仓库默认分支" />
+        </label>
+        <label class="field">
+            <span>提交号（可选）</span>
+            <input type="text" @bind="_gitCommit" placeholder="默认取最新提交" />
+        </label>
+    </div>
+
+    <div class="row">
+        <button class="btn btn-primary" disabled="@_busy" @onclick="ImportGitAsync">克隆并扫描</button>
+        <span class="muted small">克隆过程只调用 git 自身：禁用仓库钩子与 LFS 过滤器，完成后删除 .git，不执行任何仓库脚本。</span>
+    </div>
+
+    @if (_gitResult is not null)
+    {
+        <div class="alert alert-ok" style="margin-top:12px">
+            已导入 @_gitResult.FileCount 个文件（@_gitResult.Url@(string.IsNullOrWhiteSpace(_gitResult.Commit) ? "" : $"，提交 {_gitResult.Commit}")），扫描任务已排队。
+            @foreach (var warning in _gitResult.Warnings)
+            {
+                <div class="small">@warning</div>
+            }
+        </div>
+    }
+</div>
+
+<div class="card">
+    <h2>从 ZIP 压缩包导入</h2>
     <p class="muted small">支持 .zip 压缩包，单个压缩包最大 50 MB。请先在本地把代码仓库打包为 ZIP。</p>
     <InputFile OnChange="UploadAsync" accept=".zip" />
 </div>
@@ -33,7 +70,8 @@
     <h2>安全处理说明</h2>
     <ul class="small muted" style="margin:0;padding-left:20px;line-height:2">
         <li>导入过程只读取文件内容，<strong>绝不执行</strong>仓库中的脚本、构建、安装或 Git hooks。</li>
-        <li>解压时防护 Zip Slip 路径穿越、绝对路径、磁盘驱动器路径、UNC 路径、符号链接、重复路径、压缩炸弹、超量条目与超大文件。</li>
+        <li>Git 克隆禁用钩子目录、符号链接与 LFS 过滤器，禁止 ext:: 等可执行类协议，并在克隆后删除 .git。</li>
+        <li>ZIP 解压时防护 Zip Slip 路径穿越、绝对路径、磁盘驱动器路径、UNC 路径、符号链接、重复路径、压缩炸弹、超量条目与超大文件。</li>
         <li>疑似凭据文件（.env、私钥、Token 等）会被识别并排除，不会出现在证据、模型请求或普通日志中。</li>
         <li>依赖目录与构建产物默认排除，排除原因会逐条列出；安全类排除不可取消。</li>
     </ul>
@@ -113,7 +151,12 @@
     private string? _error;
     private string? _message;
     private UploadResultDto? _upload;
+    private GitImportResultDto? _gitResult;
     private ScanSummaryDto? _summary;
+
+    private string _gitUrl = string.Empty;
+    private string _gitBranch = string.Empty;
+    private string _gitCommit = string.Empty;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -129,7 +172,39 @@
         }
         catch (Exception)
         {
-            // 摘要读取失败不影响上传。
+            // 摘要读取失败不影响导入操作。
+        }
+    }
+
+    private async Task ImportGitAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_gitUrl))
+        {
+            _error = "请填写仓库地址。";
+            return;
+        }
+
+        _busy = true;
+        _error = null;
+        _message = null;
+
+        try
+        {
+            _gitResult = await Api.ImportFromGitAsync(
+                CaseId,
+                new GitImportRequest(_gitUrl.Trim(), _gitBranch.Trim(), _gitCommit.Trim()),
+                CancellationToken.None);
+
+            _message = "克隆完成，扫描任务已排队，完成后会自动刷新扫描摘要。";
+            await LoadSummaryAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
         }
     }
 

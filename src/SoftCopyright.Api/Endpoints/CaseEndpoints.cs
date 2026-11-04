@@ -102,6 +102,12 @@ public static class CaseEndpoints
                 summary.SecurityNote));
         });
 
+        group.MapPost("/{id:guid}/import-git", async (Guid id, GitImportRequest request, IGitImportService gitImport, CancellationToken ct) =>
+        {
+            var summary = await gitImport.ImportAsync(id, request, ct);
+            return Results.Ok(new GitImportResultDto(summary.Url, summary.Commit, summary.FileCount, summary.Warnings));
+        });
+
         group.MapPost("/{id:guid}/scan", async (Guid id, ICaseService cases, IBackgroundJobQueue queue, CancellationToken ct) =>
         {
             var entity = await cases.GetAsync(id, ct);

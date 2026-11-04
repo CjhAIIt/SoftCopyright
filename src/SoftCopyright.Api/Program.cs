@@ -59,7 +59,7 @@ using (var scope = app.Services.CreateScope())
     }
 
     var db = scope.ServiceProvider.GetRequiredService<SoftCopyright.Infrastructure.Data.SoftCopyrightDbContext>();
-    await db.Database.EnsureCreatedAsync();
+    await SoftCopyright.Infrastructure.Data.DatabaseInitializer.InitializeAsync(db, logger);
 }
 
 app.UseExceptionHandler(errorApp => errorApp.Run(async context =>

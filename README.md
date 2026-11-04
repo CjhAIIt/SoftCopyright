@@ -1,6 +1,6 @@
 # 软著智能申请工具（MVP）
 
-面向**任意代码仓库**的软件著作权申请材料准备工具：导入 ZIP 仓库 → 只读静态分析 → 生成带证据的项目画像 → 申请人确认 → 从**真实源码**生成申请材料包。
+面向**任意代码仓库**的软件著作权申请材料准备工具：导入 ZIP 或 Git 仓库 → 只读静态分析 → 生成带证据的项目画像 → 申请人确认 → 从**真实源码**生成申请材料包。
 
 > 核心承诺：**任意仓库都能安全进入流程并得到透明分析**。
 > 核心边界：**不执行仓库代码、不编造源码、不代替申请人做法律判断、不自动提交官方系统。**
@@ -86,7 +86,9 @@ dotnet run --project src/SoftCopyright.Api
 ### 5. 使用流程
 
 1. **申请案例** → 新建案例
-2. **导入仓库** → 上传 ZIP → 「开始扫描」
+2. **导入仓库** → 两种方式二选一：
+   - **从 Git 仓库导入**：粘贴 `https://github.com/owner/repo`（或 `git@github.com:owner/repo.git`），可选分支/提交号 → 「克隆并扫描」，系统自动排队扫描
+   - **从 ZIP 压缩包导入**：上传 ZIP → 「开始扫描」
 3. **分析与证据** → 查看画像、覆盖情况、待补充问题 → 「确认项目画像」
 4. **申请信息** → 填写并保存 → 「保存并确认」（法律与权属字段必须由你填写）
 5. **代码材料** → 勾选纳入材料包的真实源文件 → 预览 → 「保存并确认范围」
@@ -129,7 +131,43 @@ SoftCopyright/
 
 ---
 
-## 六、AI Provider 配置
+## 六、Git 仓库导入配置
+
+除 ZIP 外，还可直接粘贴仓库地址导入（GitHub / Gitee / GitLab）。导入后自动排队扫描。
+
+```json
+"GitImport": {
+  "AllowedHosts": [ "github.com", "gitee.com", "gitlab.com" ],
+  "AllowAnyHost": false,
+  "AllowLocalFileUrls": false,
+  "TimeoutSeconds": 600,
+  "Shallow": true,
+  "MaxWorkingTreeSizeMb": 512,
+  "AccessTokenEnvironmentVariable": "SOFTCOPYRIGHT_GIT_TOKEN",
+  "GitExecutablePath": ""
+}
+```
+
+| 配置 | 说明 |
+|---|---|
+| `AllowedHosts` | 允许克隆的域名白名单；自建 GitLab 需加入此列表，或置 `AllowAnyHost=true` |
+| `AllowLocalFileUrls` | 是否允许 `file://` 与本地路径（默认关闭） |
+| `TimeoutSeconds` | 克隆超时（秒），超时后终止进程并清理目录 |
+| `Shallow` | 浅克隆（只取最新一次提交），大幅降低流量与耗时 |
+| `MaxWorkingTreeSizeMb` | 克隆后工作区大小上限，超过即放弃导入 |
+| `AccessTokenEnvironmentVariable` | 私有仓库令牌的环境变量名，默认 `SOFTCOPYRIGHT_GIT_TOKEN` |
+
+私有仓库通过令牌注入（令牌只来自环境变量，不写入仓库）：
+
+```powershell
+$env:SOFTCOPYRIGHT_GIT_TOKEN = "ghp_xxx"
+```
+
+> Git 导入只调用 `git` 自身：禁用仓库钩子、符号链接与 LFS 过滤器，禁止 `ext::` 等可执行类传输协议，克隆完成后删除 `.git`。**不会执行仓库中的任何脚本**。
+
+---
+
+## 七、AI Provider 配置
 
 默认使用**离线规则分析**（`Ai:Provider=rule-based`），不联网、结果确定。
 
@@ -160,11 +198,13 @@ $env:SOFTCOPYRIGHT_AI_APIKEY = "sk-..."
 
 ---
 
-## 七、安全边界
+## 八、安全边界
 
 | 边界 | 说明 |
 |---|---|
 | 不执行仓库代码 | 全程只做文件读取与静态解析，不调用 shell、构建、安装、测试、部署或 Git hooks |
+| Git 克隆安全 | 克隆时把 `core.hooksPath` 指向空目录、禁用 LFS 过滤器与符号链接、禁止 `ext::` 等可执行类协议；克隆完成立即删除 `.git`，全过程不执行仓库脚本 |
+| Git 地址白名单 | 仅允许 `GitImport:AllowedHosts` 中的域名；拒绝 `file://`（默认）、`ext::`、`--upload-pack` 等参数注入形式 |
 | ZIP 解压防护 | Zip Slip 路径穿越、绝对路径、磁盘驱动器路径、UNC 路径、符号链接、重复路径、压缩炸弹、超量条目、超限文件与层级深度，全部拒绝并给出中文原因 |
 | 写入隔离 | 所有文件写入 `cases/{caseId}/` 隔离目录，落盘前校验规范化路径仍在根目录内 |
 | 凭据处理 | `.env`、私钥、Token 等疑似凭据文件被标记排除，不进入证据、不发给模型、不写普通日志 |
@@ -178,13 +218,13 @@ $env:SOFTCOPYRIGHT_AI_APIKEY = "sk-..."
 
 ---
 
-## 八、已知限制（明确不做）
+## 九、已知限制（明确不做）
 
 | 未实现项 | 原因 / 现状 |
 |---|---|
 | **PDF 渲染** | MVP 未实现。材料包只含 DOCX / TXT / JSON / HTML / ZIP；界面与本文档均已标注，不提供无效下载入口 |
 | 官方系统自动提交 | 不做验证码、签章、无人值守提交；只提供材料与字段映射，由申请人自行填报 |
-| GitHub / GitLab 授权接入 | MVP 只支持 ZIP 导入 |
+| 私有仓库免密导入 | 公开仓库直接克隆；私有仓库需配置 SOFTCOPYRIGHT_GIT_TOKEN 环境变量 |
 | 桌面端本地扫描 | 未实现 |
 | 组织 / 角色 / 审批 / 计费 | 单用户本地 MVP，未实现 |
 | 多 Agent 自主改写申请事实 | 不做；AI 只能产出草稿与推断 |
@@ -193,9 +233,10 @@ $env:SOFTCOPYRIGHT_AI_APIKEY = "sk-..."
 
 ---
 
-## 九、测试覆盖
+## 十、测试覆盖
 
 - **ZIP 安全**：路径穿越、绝对路径、驱动器路径、UNC、重复路径、条目数/总量/压缩比/深度/单文件超限、非法 ZIP —— 全部拒绝，且工作区外无任何写入
+- **Git 导入**：地址解析与域名白名单；`ext::`、`--upload-pack`、参数注入被拒；本地仓库克隆后 `.git` 被删除；导入后自动完成扫描并产出正确的画像与版本
 - **扫描与适配器**：.NET / Node / Python / Java / 小程序 / 通用兜底各自的元数据抽取；未知扩展名仍产出代码候选；依赖目录与疑似凭据被排除并给出原因
 - **AI 抽象**：模型输出缺证据、引用不存在路径、引用哈希不符时均被降级或丢弃；证据包剔除凭据并遵守总量上限
 - **状态机与门禁**：合法/非法迁移；修改申请信息后下游确认失效；未过门禁时生成被拒
@@ -206,7 +247,7 @@ $env:SOFTCOPYRIGHT_AI_APIKEY = "sk-..."
 
 ---
 
-## 十、文档
+## 十一、文档
 
 | 文档 | 内容 |
 |---|---|

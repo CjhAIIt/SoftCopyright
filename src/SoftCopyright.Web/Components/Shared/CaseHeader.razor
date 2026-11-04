@@ -20,6 +20,12 @@
                 {
                     <span class="muted small">规则版本 @_detail.RulesVersion ｜ 分析器 @_detail.AnalyzerVersion</span>
                 }
+                @if (!string.IsNullOrWhiteSpace(_detail.Summary.SourceRepositoryUrl))
+                {
+                    <span class="badge badge-muted" title="@_detail.Summary.SourceRepositoryUrl">
+                        来源仓库：@ShortCommit(_detail.Summary.SourceCommit)
+                    </span>
+                }
             }
             <span class="spacer"></span>
             <a class="btn btn-sm" href="/">返回列表</a>
@@ -160,6 +166,9 @@
     };
 
     private static int _stageOrder(string stageName) => StageIndex(stageName);
+
+    private static string ShortCommit(string? commit) =>
+        string.IsNullOrWhiteSpace(commit) ? "已导入" : commit.Length <= 8 ? commit : commit[..8];
 
     public void Dispose()
     {

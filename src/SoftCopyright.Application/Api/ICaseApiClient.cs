@@ -1,4 +1,5 @@
 using SoftCopyright.Application.Dtos;
+using SoftCopyright.Domain.Contracts;
 
 namespace SoftCopyright.Application.Api;
 
@@ -14,6 +15,8 @@ public interface ICaseApiClient
     Task<DeleteCaseResponse> DeleteCaseAsync(Guid id, CancellationToken ct);
 
     Task<UploadResultDto> UploadAsync(Guid id, string fileName, Stream content, CancellationToken ct);
+
+    Task<GitImportResultDto> ImportFromGitAsync(Guid id, GitImportRequest request, CancellationToken ct);
 
     Task<JobDto> TriggerScanAsync(Guid id, CancellationToken ct);
 

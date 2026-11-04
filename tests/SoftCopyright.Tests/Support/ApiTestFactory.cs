@@ -48,7 +48,10 @@ public sealed class ApiTestFactory : WebApplicationFactory<Program>
             {
                 ["Storage:DataRoot"] = _dataRoot,
                 ["App:ApiBaseAddress"] = "http://localhost",
-                ["Ai:Provider"] = "rule-based"
+                ["Ai:Provider"] = "rule-based",
+                // 测试用本地 git 仓库验证导入通道。
+                ["GitImport:AllowLocalFileUrls"] = "true",
+                ["GitImport:TimeoutSeconds"] = "120"
             };
 
             var mysql = ResolveBaseMySqlConnection();

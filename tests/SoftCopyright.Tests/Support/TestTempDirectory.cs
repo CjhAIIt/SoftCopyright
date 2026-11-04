@@ -17,10 +17,7 @@ public sealed class TestTempDirectory : IDisposable
     {
         try
         {
-            if (Directory.Exists(Path))
-            {
-                Directory.Delete(Path, recursive: true);
-            }
+            SoftCopyright.Domain.SafeFileSystem.DeleteDirectory(Path);
         }
         catch (IOException)
         {

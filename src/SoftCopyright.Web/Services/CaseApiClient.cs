@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using SoftCopyright.Application.Api;
 using SoftCopyright.Application.Dtos;
+using SoftCopyright.Domain.Contracts;
 
 namespace SoftCopyright.Web.Services;
 
@@ -54,6 +55,13 @@ public sealed class CaseApiClient(HttpClient http) : ICaseApiClient
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
         var jobId = document.RootElement.GetProperty("jobId").GetGuid();
         return new JobDto(jobId, Domain.JobType.Scan, "仓库扫描", Domain.JobStatus.Pending, "等待中", 0, "已排队", null, 0, 3, DateTimeOffset.Now, null);
+    }
+
+    public async Task<GitImportResultDto> ImportFromGitAsync(Guid id, GitImportRequest request, CancellationToken ct)
+    {
+        var response = await http.PostAsJsonAsync($"/api/cases/{id}/import-git", request, Options, ct);
+        await EnsureSuccessAsync(response, ct);
+        return (await response.Content.ReadFromJsonAsync<GitImportResultDto>(Options, ct))!;
     }
 
     public async Task<IReadOnlyList<JobDto>> GetJobsAsync(Guid id, CancellationToken ct) =>

@@ -26,6 +26,12 @@ public sealed class ApplicationCase
 
     public string? UploadedFileName { get; set; }
 
+    /// <summary>来源仓库地址（从 Git 导入时记录）。</summary>
+    public string? SourceRepositoryUrl { get; set; }
+
+    /// <summary>来源仓库提交号（从 Git 导入时记录）。</summary>
+    public string? SourceCommit { get; set; }
+
     /// <summary>案例隔离目录（绝对路径，由服务端生成，客户端不可控）。</summary>
     public string DataDirectory { get; set; } = string.Empty;
 

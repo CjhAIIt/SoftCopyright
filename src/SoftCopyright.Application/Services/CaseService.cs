@@ -98,6 +98,8 @@ public sealed class CaseService(
             entity.FailureReason,
             artifactCount,
             confirmed.Count(c => c.InvalidatedAt is null),
-            5);
+            5,
+            entity.SourceRepositoryUrl,
+            entity.SourceCommit);
     }
 }

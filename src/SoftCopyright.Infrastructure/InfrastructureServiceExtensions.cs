@@ -28,6 +28,7 @@ public static class InfrastructureServiceExtensions
         services.Configure<ScanOptions>(configuration.GetSection(ScanOptions.SectionName));
         services.Configure<MaterialRules>(configuration.GetSection(MaterialRules.SectionName));
         services.Configure<AiOptions>(configuration.GetSection(AiOptions.SectionName));
+        services.Configure<GitImportOptions>(configuration.GetSection(GitImportOptions.SectionName));
 
         services.AddDbContext<SoftCopyrightDbContext>(options => ConfigureDatabase(options, configuration));
         services.AddScoped(typeof(IRepository<>), typeof(EfRepository<>));
