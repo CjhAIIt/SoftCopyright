@@ -10,16 +10,29 @@ using SoftCopyright.Domain.Options;
 
 namespace SoftCopyright.AI;
 
-/// <summary>OpenAI 兼容 HTTP 模型 Provider。未配置密钥时不发起任何请求。</summary>
+/// <summary>
+/// OpenAI 兼容 HTTP 模型 Provider。
+///
+/// 接入设置按优先级取：
+/// 1. 当前账号在引导流程中配置的个人设置（BaseUrl / Model / API Key）；
+/// 2. 全局环境变量配置（无人值守场景）。
+/// 两者都不可用时**不发起任何请求**，由上层回退到规则实现。
+/// 密钥不会写入日志。
+/// </summary>
 public sealed class HttpAiProvider : IAiProvider, IDisposable
 {
     private readonly AiOptions _options;
+    private readonly IAiSettingsProvider _settingsProvider;
     private readonly ILogger<HttpAiProvider> _logger;
     private readonly HttpClient _httpClient;
 
-    public HttpAiProvider(IOptions<AiOptions> options, ILogger<HttpAiProvider> logger)
+    public HttpAiProvider(
+        IOptions<AiOptions> options,
+        IAiSettingsProvider settingsProvider,
+        ILogger<HttpAiProvider> logger)
     {
         _options = options.Value;
+        _settingsProvider = settingsProvider;
         _logger = logger;
         _httpClient = new HttpClient
         {
@@ -29,29 +42,43 @@ public sealed class HttpAiProvider : IAiProvider, IDisposable
 
     public string Id => "http";
 
-    public bool IsEnabled =>
-        !string.IsNullOrWhiteSpace(ResolveApiKey())
-        && !string.IsNullOrWhiteSpace(_options.BaseUrl)
-        && !string.IsNullOrWhiteSpace(_options.Model);
-
-    /// <summary>密钥只从环境变量或本地用户配置读取，不写入代码与日志。</summary>
-    private string? ResolveApiKey()
+    public async Task<AiAccountSettings?> ResolveAsync(CancellationToken ct)
     {
-        var fromEnvironment = Environment.GetEnvironmentVariable(_options.ApiKeyEnvironmentVariable);
-        return !string.IsNullOrWhiteSpace(fromEnvironment) ? fromEnvironment : _options.ApiKey;
+        var account = await _settingsProvider.GetCurrentAsync(ct);
+        if (account is not null)
+        {
+            return account;
+        }
+
+        // 回退到全局配置：密钥只从环境变量读取，不写入代码与日志。
+        var apiKey = Environment.GetEnvironmentVariable(_options.ApiKeyEnvironmentVariable);
+        if (string.IsNullOrWhiteSpace(apiKey))
+        {
+            apiKey = _options.ApiKey;
+        }
+
+        if (string.IsNullOrWhiteSpace(apiKey) ||
+            string.IsNullOrWhiteSpace(_options.BaseUrl) ||
+            string.IsNullOrWhiteSpace(_options.Model))
+        {
+            return null;
+        }
+
+        return new AiAccountSettings(_options.BaseUrl, _options.Model, apiKey);
     }
 
     public async Task<string> CompleteJsonAsync(AiRequest request, CancellationToken ct)
     {
-        if (!IsEnabled)
+        var settings = await ResolveAsync(ct);
+        if (settings is null)
         {
             throw new InvalidOperationException("模型 Provider 未启用（缺少 BaseUrl / Model / API Key）。");
         }
 
-        var endpoint = $"{_options.BaseUrl!.TrimEnd('/')}/chat/completions";
+        var endpoint = $"{settings.BaseUrl.TrimEnd('/')}/chat/completions";
         var payload = new
         {
-            model = _options.Model,
+            model = settings.Model,
             temperature = 0,
             max_tokens = request.MaxTokens,
             response_format = new { type = "json_object" },
@@ -70,7 +97,7 @@ public sealed class HttpAiProvider : IAiProvider, IDisposable
 
             using var message = new HttpRequestMessage(HttpMethod.Post, endpoint);
             message.Content = new StringContent(json, Encoding.UTF8, "application/json");
-            message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ResolveApiKey());
+            message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", settings.ApiKey);
 
             using var response = await _httpClient.SendAsync(message, ct);
 
@@ -83,35 +110,10 @@ public sealed class HttpAiProvider : IAiProvider, IDisposable
             }
 
             response.EnsureSuccessStatusCode();
-            var body = await response.Content.ReadAsStringAsync(ct);
-
-            try
-            {
-                using var document = JsonDocument.Parse(body);
-                var content = document.RootElement
-                    .GetProperty("choices")[0]
-                    .GetProperty("message")
-                    .GetProperty("content")
-                    .GetString();
-
-                if (string.IsNullOrWhiteSpace(content))
-                {
-                    throw new InvalidOperationException("模型返回内容为空。");
-                }
-
-                return content;
-            }
-            catch (KeyNotFoundException)
-            {
-                throw new InvalidOperationException("模型返回结构不符合 OpenAI 兼容格式。");
-            }
-            catch (JsonException)
-            {
-                throw new InvalidOperationException("模型返回内容不是合法 JSON。");
-            }
+            return await response.Content.ReadAsStringAsync(ct);
         }
 
-        throw new InvalidOperationException("模型接口多次限流，已放弃本次请求。");
+        throw new InvalidOperationException("模型接口连续限流，已放弃本次调用。");
     }
 
     public void Dispose() => _httpClient.Dispose();

@@ -37,7 +37,7 @@ public static class CaseEndpoints
         app.MapGet("/api/flows/{kind:regex(^(SoftwareCopyright|Patent)$)}", (MaterialKind kind, MaterialFlowRegistry flows) =>
             Results.Ok(Mapping.ToDto(flows.Get(kind))));
 
-        var group = app.MapGroup("/api/cases");
+        var group = app.MapGroup("/api/cases").RequireAuthorization();
 
         group.MapGet("/", async (ICaseService cases, CancellationToken ct) =>
         {

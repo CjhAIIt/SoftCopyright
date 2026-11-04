@@ -1,16 +1,44 @@
+@using Microsoft.AspNetCore.Components.Authorization
 @using SoftCopyright.Web.Components.Layout
-<Router AppAssembly="@typeof(App).Assembly">
-    <Found Context="routeData">
-        <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
-        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
-    </Found>
-    <NotFound>
-        <LayoutView Layout="@typeof(MainLayout)">
-            <div class="card">
-                <h2>页面不存在</h2>
-                <p>请返回「申请案例列表」重新开始。</p>
-                <a class="btn btn-primary" href="/">返回列表</a>
-            </div>
-        </LayoutView>
-    </NotFound>
-</Router>
+
+<CascadingAuthenticationState>
+    <Router AppAssembly="@typeof(App).Assembly">
+        <Found Context="routeData">
+            <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+                <NotAuthorized>
+                    @if (context.User.Identity?.IsAuthenticated != true)
+                    {
+                        <LayoutView Layout="@typeof(MainLayout)">
+                            <div class="card">
+                                <h2>请先登录</h2>
+                                <p class="muted small">本工具按账号隔离材料，请先登录或注册一个本地账号。</p>
+                                <a class="btn btn-primary" href="/login">去登录</a>
+                                <a class="btn" href="/register">注册新账号</a>
+                            </div>
+                        </LayoutView>
+                    }
+                    else
+                    {
+                        <LayoutView Layout="@typeof(MainLayout)">
+                            <div class="card">
+                                <h2>没有访问权限</h2>
+                                <p class="muted small">该资源不属于当前账号。</p>
+                                <a class="btn" href="/">返回列表</a>
+                            </div>
+                        </LayoutView>
+                    }
+                </NotAuthorized>
+            </AuthorizeRouteView>
+            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+        </Found>
+        <NotFound>
+            <LayoutView Layout="@typeof(MainLayout)">
+                <div class="card">
+                    <h2>页面不存在</h2>
+                    <p>请返回「申请案例列表」重新开始。</p>
+                    <a class="btn btn-primary" href="/">返回列表</a>
+                </div>
+            </LayoutView>
+        </NotFound>
+    </Router>
+</CascadingAuthenticationState>

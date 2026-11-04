@@ -1,4 +1,5 @@
 @page "/cases/{CaseId:guid}/patent"
+@attribute [Authorize]
 @rendermode InteractiveServer
 @inject ICaseApiClient Api
 @implements IDisposable

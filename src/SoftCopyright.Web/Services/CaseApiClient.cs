@@ -23,6 +23,9 @@ public sealed class CaseApiClient(HttpClient http) : ICaseApiClient
     public async Task<MaterialFlowDto> GetFlowAsync(MaterialKind materialKind, CancellationToken ct) =>
         (await GetAsync<MaterialFlowDto>($"/api/flows/{materialKind}", ct))!;
 
+    public async Task<AccountDto?> GetAccountAsync(CancellationToken ct) =>
+        await GetAsync<AccountDto>("/api/account/me", ct);
+
     public async Task<IReadOnlyList<CaseSummaryDto>> GetCasesAsync(CancellationToken ct) =>
         await GetAsync<List<CaseSummaryDto>>("/api/cases", ct) ?? [];
 

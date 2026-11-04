@@ -35,6 +35,8 @@ public sealed class SoftCopyrightDbContext(DbContextOptions<SoftCopyrightDbConte
 
     public DbSet<PatentClaim> PatentClaims => Set<PatentClaim>();
 
+    public DbSet<ApplicationUser> Users => Set<ApplicationUser>();
+
     protected override void OnModelCreating(ModelBuilder b)
     {
         b.Entity<ApplicationCase>(e =>
@@ -55,6 +57,23 @@ public sealed class SoftCopyrightDbContext(DbContextOptions<SoftCopyrightDbConte
             e.Property(x => x.RulesVersion).HasMaxLength(50);
             e.Property(x => x.AnalyzerVersion).HasMaxLength(50);
             e.HasIndex(x => x.IsDeleted);
+            e.HasIndex(x => x.UserId);
+        });
+
+        b.Entity<ApplicationUser>(e =>
+        {
+            e.ToTable("ApplicationUsers");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.UserName).HasMaxLength(60).IsRequired();
+            e.Property(x => x.DisplayName).HasMaxLength(100).IsRequired();
+            e.Property(x => x.PasswordHash).HasMaxLength(300).IsRequired();
+
+            // 模型接入设置以密文保存，长度取决于 AES-GCM 输出（Base64）。
+            e.Property(x => x.EncryptedAiBaseUrl).HasMaxLength(1000);
+            e.Property(x => x.EncryptedAiModel).HasMaxLength(1000);
+            e.Property(x => x.EncryptedAiApiKey).HasMaxLength(1000);
+
+            e.HasIndex(x => x.UserName).IsUnique();
         });
 
         b.Entity<ProjectFile>(e =>

@@ -20,7 +20,7 @@ public sealed class MaterialDraftGenerator(
         var warnings = new List<string>();
         IReadOnlyList<string> sections = BuildSections(pack, applicant);
 
-        if (provider.IsEnabled)
+        if (await provider.ResolveAsync(ct) is not null)
         {
             try
             {
@@ -115,24 +115,38 @@ public sealed class MaterialDraftGenerator(
     }
 }
 
-/// <summary>按配置选择具体分析器。</summary>
+/// <summary>
+/// 按配置选择具体分析器。
+///
+/// 优先级：
+/// 1. 当前账号在引导流程中配置了模型密钥 → 用模型分析（仍受证据回验与降级规则约束）；
+/// 2. 全局配置为 mock → 用内置模拟；
+/// 3. 其余情况 → 用完全离线的规则分析。
+/// </summary>
 public sealed class ProjectAnalyzerRouter(
     RuleBasedProjectAnalyzer ruleBased,
     MockModelAnalyzer mock,
     HttpModelAnalyzer http,
+    IAiProvider aiProvider,
     IOptions<AiOptions> options) : IProjectAnalyzer
 {
     public string Id => "router";
 
-    public Task<ProjectAnalysisResult> AnalyzeAsync(EvidencePack pack, ProjectProfile baseline, CancellationToken ct)
+    public async Task<ProjectAnalysisResult> AnalyzeAsync(EvidencePack pack, ProjectProfile baseline, CancellationToken ct)
     {
-        var provider = options.Value.Provider?.Trim().ToLowerInvariant() ?? "rule-based";
+        var globalProvider = options.Value.Provider?.Trim().ToLowerInvariant() ?? "rule-based";
 
-        return provider switch
+        if (globalProvider == "mock")
         {
-            "mock" => mock.AnalyzeAsync(pack, baseline, ct),
-            "http" => http.AnalyzeAsync(pack, baseline, ct),
-            _ => ruleBased.AnalyzeAsync(pack, baseline, ct)
-        };
+            return await mock.AnalyzeAsync(pack, baseline, ct);
+        }
+
+        // 账号配置优先：引导流程里用户明确选择了使用模型。
+        if (await aiProvider.ResolveAsync(ct) is not null)
+        {
+            return await http.AnalyzeAsync(pack, baseline, ct);
+        }
+
+        return await ruleBased.AnalyzeAsync(pack, baseline, ct);
     }
 }

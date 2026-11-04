@@ -12,20 +12,53 @@ public sealed class CaseService(
     IRepository<ConfirmationRecord> confirmations,
     IRepository<ProjectFile> files,
     IRepository<CaseDeletionAudit> audits,
+    ICurrentAccountContext currentAccount,
     IFileStore fileStore,
     ILogger<CaseService> logger) : ICaseService
 {
-    public async Task<IReadOnlyList<ApplicationCase>> ListAsync(CancellationToken ct) =>
-        await cases.ListAsync(c => !c.IsDeleted, ct);
+    /// <summary>当前账号；未登录时为 null。</summary>
+    private Guid? CurrentUserId => currentAccount.UserId;
 
-    /// <summary>按材料类型列出案例：软著与专利各自独立的工作区。</summary>
-    public async Task<IReadOnlyList<ApplicationCase>> ListAsync(MaterialKind materialKind, CancellationToken ct) =>
-        await cases.ListAsync(c => !c.IsDeleted && c.MaterialKind == materialKind, ct);
+    /// <summary>
+    /// 列出当前账号可见的案例。
+    /// 未登录时返回空列表——材料按账号隔离，匿名不得看到任何案例。
+    /// </summary>
+    public async Task<IReadOnlyList<ApplicationCase>> ListAsync(CancellationToken ct)
+    {
+        var userId = CurrentUserId;
+        if (userId is null)
+        {
+            return [];
+        }
+
+        return await cases.ListAsync(c => !c.IsDeleted && c.UserId == userId.Value, ct);
+    }
+
+    /// <summary>按材料类型列出当前账号的案例：软著与专利各自独立的工作区。</summary>
+    public async Task<IReadOnlyList<ApplicationCase>> ListAsync(MaterialKind materialKind, CancellationToken ct)
+    {
+        var userId = CurrentUserId;
+        if (userId is null)
+        {
+            return [];
+        }
+
+        return await cases.ListAsync(
+            c => !c.IsDeleted && c.UserId == userId.Value && c.MaterialKind == materialKind,
+            ct);
+    }
 
     public async Task<ApplicationCase?> GetAsync(Guid id, CancellationToken ct)
     {
         var entity = await cases.FindAsync(id, ct);
-        return entity is null || entity.IsDeleted ? null : entity;
+        if (entity is null || entity.IsDeleted)
+        {
+            return null;
+        }
+
+        // 案例按账号隔离：他人案例一律视为不可见。
+        var userId = CurrentUserId;
+        return userId is null || entity.UserId == userId.Value ? entity : null;
     }
 
     public async Task<ApplicationCase> CreateAsync(string? name, CancellationToken ct) =>
@@ -41,6 +74,7 @@ public sealed class CaseService(
             Id = id,
             Name = string.IsNullOrWhiteSpace(name) ? "未命名项目" : name.Trim(),
             MaterialKind = materialKind,
+            UserId = currentAccount.UserId ?? Guid.Empty,
             Stage = CaseStage.Created,
             StageUpdatedAt = now,
             CreatedAt = now,

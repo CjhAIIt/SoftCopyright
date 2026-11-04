@@ -19,7 +19,7 @@ public sealed class HttpModelAnalyzer(
 
     public async Task<ProjectAnalysisResult> AnalyzeAsync(EvidencePack pack, ProjectProfile baseline, CancellationToken ct)
     {
-        if (!provider.IsEnabled)
+        if (await provider.ResolveAsync(ct) is null)
         {
             return validator.Fallback(baseline, "模型 Provider 未启用，已使用规则分析。");
         }

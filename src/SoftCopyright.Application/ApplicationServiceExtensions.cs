@@ -47,6 +47,9 @@ public static class ApplicationServiceExtensions
         services.AddScoped<ICodeSelectionService, CodeSelectionService>();
         services.AddScoped<IConfirmationService, ConfirmationService>();
         services.AddScoped<IValidationService, ValidationService>();
+        services.AddScoped<IAccountService, AccountService>();
+        services.AddScoped<ICurrentAccountContext, CurrentAccountContext>();
+        services.AddScoped<IAiSettingsProvider, AiSettingsProvider>();
 
         services.AddScoped<ICaseScanWorkflow, ScanWorkflow>();
         services.AddScoped<ICaseAnalyzeWorkflow, AnalyzeWorkflow>();

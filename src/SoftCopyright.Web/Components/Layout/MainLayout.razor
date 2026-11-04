@@ -1,4 +1,5 @@
 @inherits LayoutComponentBase
+@inject NavigationManager Nav
 
 <div class="app">
     <header class="topbar">
@@ -9,6 +10,14 @@
             <a href="/patent">专利材料书写</a>
         </nav>
         <span class="env-note">本地单用户 MVP · 不联网提交</span>
+        @if (UserName is not null)
+        {
+            <form method="post" action="/api/auth/logout" class="logout-form">
+                <AntiforgeryToken />
+                <span class="user-name">@UserName</span>
+                <button type="submit" class="btn btn-sm">退出</button>
+            </form>
+        }
     </header>
 
     <main class="content">
@@ -19,6 +28,26 @@
         本工具生成的材料仅供申请材料准备参考，最终登记与申请由申请人在官方系统自行提交并签章。
     </footer>
 </div>
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    private string? UserName { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (AuthenticationStateTask is null)
+        {
+            return;
+        }
+
+        var state = await AuthenticationStateTask;
+        UserName = state.User.Identity?.IsAuthenticated == true
+            ? state.User.Identity.Name
+            : null;
+    }
+}
 
 <style>
     :root {
@@ -56,16 +85,23 @@
 
     .topbar {
         display: flex; align-items: center; gap: 20px;
-        padding: 0 20px; height: 52px;
+        padding: 0 20px; min-height: 52px;
         background: var(--panel);
         border-bottom: 1px solid var(--line);
         position: sticky; top: 0; z-index: 20;
+        flex-wrap: wrap;
     }
 
-    .brand { font-weight: 700; font-size: 16px; color: var(--text); }
+    .brand { font-weight: 700; font-size: 16px; color: var(--text); white-space: nowrap; }
     .brand:hover { text-decoration: none; }
-    .topnav { display: flex; gap: 16px; }
-    .env-note { margin-left: auto; color: var(--muted); font-size: 12px; }
+    .topnav { display: flex; gap: 16px; flex-wrap: nowrap; }
+    .topnav a { white-space: nowrap; }
+    .env-note { margin-left: auto; color: var(--muted); font-size: 12px; white-space: nowrap; }
+    .logout-form { display: flex; align-items: center; gap: 8px; margin-left: 14px; flex: none; }
+    .user-name {
+        font-size: 12px; color: var(--muted);
+        max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
 
     .content { flex: 1; width: 100%; max-width: 1180px; margin: 0 auto; padding: 20px; }
     .footer { padding: 14px 20px; color: var(--muted); font-size: 12px; text-align: center; border-top: 1px solid var(--line); }
@@ -139,9 +175,19 @@
     .spacer { flex: 1; }
     .small { font-size: 12px; }
 
+    @@media (max-width: 1000px) {
+        .env-note { display: none; }
+    }
+
+    @@media (max-width: 860px) {
+        .topbar { gap: 12px; }
+        .topnav { gap: 10px; font-size: 13px; }
+        .brand { font-size: 15px; }
+        .logout-form { margin-left: 6px; }
+    }
+
     @@media (max-width: 720px) {
         .grid-2 { grid-template-columns: 1fr; }
         .content { padding: 12px; }
-        .env-note { display: none; }
     }
 </style>

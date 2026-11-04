@@ -13,6 +13,9 @@ public interface ICaseApiClient
     /// <summary>取得指定材料类型的流程描述。</summary>
     Task<MaterialFlowDto> GetFlowAsync(MaterialKind materialKind, CancellationToken ct);
 
+    /// <summary>取得当前登录账号的信息。</summary>
+    Task<AccountDto?> GetAccountAsync(CancellationToken ct);
+
     Task<IReadOnlyList<CaseSummaryDto>> GetCasesAsync(CancellationToken ct);
 
     /// <summary>列出某一材料类型的案例（两条流程各自独立的工作区）。</summary>

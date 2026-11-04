@@ -1,6 +1,9 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using MySql.Data.MySqlClient;
 using SoftCopyright.Infrastructure;
@@ -15,7 +18,7 @@ namespace SoftCopyright.Tests.Support;
 /// 避免并发建表互相冲突。
 /// 未配置 MySQL 连接信息时回退到 SQLite 临时库，保证离线环境仍可运行测试。
 /// </summary>
-public sealed class ApiTestFactory : WebApplicationFactory<Program>
+public class ApiTestFactory : WebApplicationFactory<Program>
 {
     private string _dataRoot =
         Path.Combine(Path.GetTempPath(), "sc-api-test-" + Guid.NewGuid().ToString("N"));
@@ -37,6 +40,16 @@ public sealed class ApiTestFactory : WebApplicationFactory<Program>
     public string? MySqlConnectionString { get; set; }
 
     private string? _testDatabaseName;
+
+    /// <summary>
+    /// 测试账号：所有请求都以该账号身份通过，案例归属它。
+    /// 使用固定 ID —— "重启后数据仍在"的用例会新建宿主实例，账号 ID 必须保持一致。
+    /// 各测试宿主使用独立的数据库，固定 ID 不会互相干扰。
+    /// </summary>
+    public TestAccount TestAccount { get; } = new(
+        Guid.Parse("00000000-0000-0000-0000-000000009001"),
+        "tester",
+        "Test");
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -70,7 +83,29 @@ public sealed class ApiTestFactory : WebApplicationFactory<Program>
 
             configuration.AddInMemoryCollection(overrides);
         });
+
+        // 应用已启用 Cookie 认证与账号隔离；测试用固定账号替换默认认证方案。
+        if (!UseRealAuthentication)
+        {
+            builder.ConfigureTestServices(services =>
+            {
+                services.AddSingleton(TestAccount);
+                services.AddAuthentication(options =>
+                    {
+                        options.DefaultAuthenticateScheme = TestAccount.SchemeName;
+                        options.DefaultChallengeScheme = TestAccount.SchemeName;
+                        options.DefaultScheme = TestAccount.SchemeName;
+                    })
+                    .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(TestAccount.SchemeName, _ => { });
+            });
+        }
     }
+
+    /// <summary>
+    /// 是否使用真实 Cookie 认证（不走固定测试账号）。
+    /// 验证注册、登录与引导流程时必须置为 true。
+    /// </summary>
+    public bool UseRealAuthentication { get; set; }
 
     /// <summary>在应用启动前确保测试库存在。</summary>
     protected override IHost CreateHost(IHostBuilder builder)

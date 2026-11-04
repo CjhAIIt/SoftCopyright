@@ -23,6 +23,17 @@ public sealed record CaseSummaryDto(
 /// <summary>创建案例请求。</summary>
 public sealed record CreateCaseRequest(string? Name, MaterialKind MaterialKind = MaterialKind.SoftwareCopyright);
 
+/// <summary>账号对外信息。</summary>
+public sealed record AccountDto(
+    Guid Id,
+    string UserName,
+    string DisplayName,
+    bool OnboardingCompleted,
+    bool AiAssistantEnabled,
+    bool HasAiConfiguration,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? LastLoginAt);
+
 /// <summary>材料流程的一个工作页标签。</summary>
 public sealed record MaterialTabDto(string Key, string Label, string Route);
 

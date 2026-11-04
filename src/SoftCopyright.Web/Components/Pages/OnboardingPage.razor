@@ -1,0 +1,180 @@
+@page "/onboarding"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject ICaseApiClient Api
+@inject NavigationManager Nav
+
+<PageTitle>引导 · 知识产权申请材料工具</PageTitle>
+
+<div class="page-head">
+    <div>
+        <h1>开始使用前，先做一次设置</h1>
+        <div class="sub">这一步只决定"谁来帮你写"，不影响工具的核心能力：扫描、取证、校验与材料生成全部在本机完成。</div>
+    </div>
+</div>
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger">@_error</div>
+}
+
+@if (_loading)
+{
+    <div class="card"><div class="empty">正在加载账号信息……</div></div>
+}
+else if (_account is null)
+{
+    <div class="card"><div class="empty">未能读取账号信息，请重新登录。</div></div>
+}
+else
+{
+    <div class="card">
+        <h2>一、你会得到什么</h2>
+        <div class="grid-2">
+            <div class="mini-card mini-soft">
+                <div class="mini-title">软著材料书写</div>
+                <p class="small muted">导入真实代码仓库 → 只读静态分析 → 生成申请表信息、操作手册、代码鉴别材料与证据清单。</p>
+            </div>
+            <div class="mini-card mini-patent">
+                <div class="mini-title">专利材料书写</div>
+                <p class="small muted">以技术交底书为唯一真源 → 生成权利要求书、说明书、摘要，并逐条绑定代码证据。</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>二、要不要接入你自己的模型？</h2>
+
+        @if (_account.AiAssistantEnabled)
+        {
+            <div class="alert alert-ok">
+                已接入模型接口，分析与撰写会调用你的模型辅助润色。<b>硬约束不变</b>：模型输出必须通过 JSON 强校验，
+                每条证据引用都要回验路径与哈希，无有效证据一律降级为「推断」，调用失败自动回退到完全离线的规则实现。
+            </div>
+        }
+        else
+        {
+            <p class="small muted">
+                接入模型后，它可以在<b>不改事实、不新增技术特征</b>的前提下润色措辞；
+                不接入则完全使用本机的规则实现——功能完整、结果确定、不产生任何外部请求。
+            </p>
+
+            @if (!_confirmOffline)
+            {
+                <div class="row" style="margin-top:12px">
+                    <button type="button" class="btn btn-primary" @onclick="ShowAiForm">
+                        配置 API 密钥，使用模型辅助
+                    </button>
+                    <button type="button" class="btn" @onclick="() => _confirmOffline = true">
+                        不配置，用免费的离线功能
+                    </button>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-warn">
+                    <div class="row" style="justify-content:space-between">
+                        <span>确定不使用模型接口吗？</span>
+                        <span class="spacer"></span>
+                        <button type="button" class="btn btn-sm" @onclick="() => _confirmOffline = false">再想想</button>
+                    </div>
+                    <p class="small" style="margin:8px 0 0">
+                        你将使用<b>完全离线</b>的免费功能：仓库扫描、证据回溯、权利要求生成、说明书组装与校验全部由本机规则引擎完成，
+                        不产生任何外部网络请求。之后仍可在账号设置里接入模型。
+                    </p>
+                    <form method="post" action="/api/account/onboarding/skip" style="margin-top:10px">
+                        <AntiforgeryToken />
+                        <button type="submit" class="btn btn-primary">确定，使用离线功能</button>
+                    </form>
+                </div>
+            }
+
+            @if (_showAiForm)
+            {
+                <form method="post" action="/api/account/onboarding/ai" class="ai-form">
+                    <AntiforgeryToken />
+
+                    <label class="field">
+                        <span>模型接口地址</span>
+                        <input type="text" name="baseUrl" placeholder="https://your-gateway/v1" required />
+                        <span class="hint">OpenAI 兼容接口，填到 <code>/v1</code> 为止即可。</span>
+                    </label>
+
+                    <label class="field">
+                        <span>模型名称</span>
+                        <input type="text" name="model" placeholder="例如：your-model" required />
+                    </label>
+
+                    <label class="field">
+                        <span>API 密钥</span>
+                        <input type="password" name="apiKey" required autocomplete="off" />
+                        <span class="hint">
+                            密钥会用本机密钥文件做 AES-256-GCM 加密后存进本地数据库，<b>不会进仓库、不进日志</b>，也不会发往除你填写的接口以外的任何地方。
+                        </span>
+                    </label>
+
+                    <div class="row">
+                        <button type="submit" class="btn btn-primary">保存并开始使用</button>
+                        <button type="button" class="btn" @onclick="() => _showAiForm = false">取消</button>
+                    </div>
+                </form>
+            }
+        }
+
+        <div class="row" style="margin-top:16px;border-top:1px solid var(--line);padding-top:12px">
+            <span class="spacer"></span>
+            <a class="btn" href="/">先跳过，直接进入工作台</a>
+        </div>
+    </div>
+}
+
+@code {
+    private AccountDto? _account;
+    private bool _loading = true;
+    private bool _showAiForm;
+    private bool _confirmOffline;
+    private string? _error;
+
+    [SupplyParameterFromQuery]
+    public string? Error { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _error = Error;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            _account = await Api.GetAccountAsync(CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void ShowAiForm()
+    {
+        _confirmOffline = false;
+        _showAiForm = true;
+    }
+}
+
+<style>
+    .mini-card { border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; background: #fbfcfd; }
+    .mini-card::before { content: ""; display: block; width: 28px; height: 3px; border-radius: 2px; margin-bottom: 10px; }
+    .mini-soft::before { background: #4f46e5; }
+    .mini-patent::before { background: #0f766e; }
+    .mini-title { font-weight: 700; margin-bottom: 4px; }
+    .mini-card p { margin: 0; }
+    .ai-form { margin-top: 16px; border-top: 1px dashed var(--line); padding-top: 14px; }
+    code { background: #f1f3f5; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+</style>

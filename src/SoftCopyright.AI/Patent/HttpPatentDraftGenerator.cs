@@ -31,7 +31,7 @@ public sealed class HttpPatentDraftGenerator(
         var baseline = await new RuleBasedPatentDraftGenerator().DraftAsync(pack, disclosure, ct);
         var warnings = baseline.Warnings.ToList();
 
-        if (!provider.IsEnabled)
+        if (await provider.ResolveAsync(ct) is null)
         {
             warnings.Add("模型 Provider 未启用，专利草稿使用规则版本生成。");
             return baseline with { Warnings = warnings };

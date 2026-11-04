@@ -35,6 +35,9 @@ public sealed class ApplicationCase
     /// <summary>申请材料类型：软著登记或专利申请。</summary>
     public MaterialKind MaterialKind { get; set; } = MaterialKind.SoftwareCopyright;
 
+    /// <summary>案例归属账号。案例只对该账号可见。</summary>
+    public Guid UserId { get; set; }
+
     /// <summary>案例隔离目录（绝对路径，由服务端生成，客户端不可控）。</summary>
     public string DataDirectory { get; set; } = string.Empty;
 

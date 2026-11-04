@@ -59,6 +59,12 @@ public sealed class BackgroundJobWorker(
     private async Task ExecuteJobAsync(BackgroundJob job, IServiceProvider services, CancellationToken ct)
     {
         var queue = services.GetRequiredService<IBackgroundJobQueue>();
+
+        // 后台任务没有请求上下文，按案例归属账号设置作用域，
+        // 这样模型接入设置才能按账号解析。
+        var accountScope = services.GetRequiredService<ICurrentAccountContext>();
+        accountScope.Use(await ResolveOwnerAsync(services, job.CaseId, ct));
+
         try
         {
             switch (job.Type)
@@ -176,6 +182,22 @@ public sealed class BackgroundJobWorker(
             j.ProgressPercent = clamped;
             j.Message = message;
         }, ct);
+    }
+
+    /// <summary>取案例归属账号。</summary>
+    private static async Task<Guid?> ResolveOwnerAsync(IServiceProvider services, Guid caseId, CancellationToken ct)
+    {
+        try
+        {
+            var cases = services.GetRequiredService<IRepository<ApplicationCase>>();
+            var entity = await cases.FindAsync(caseId, ct);
+            return entity is null || entity.UserId == Guid.Empty ? null : entity.UserId;
+        }
+        catch
+        {
+            // 取不到归属账号时按"无账号"处理：模型设置解析不到就回退到离线规则实现。
+            return null;
+        }
     }
 
     /// <summary>异常摘要：只保留类型与消息，不输出堆栈，避免把源码正文写进日志。</summary>

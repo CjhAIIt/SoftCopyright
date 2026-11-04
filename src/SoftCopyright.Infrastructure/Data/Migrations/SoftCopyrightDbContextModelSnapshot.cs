@@ -204,11 +204,69 @@ namespace SoftCopyright.Infrastructure.Data.Migrations
                         .HasMaxLength(260)
                         .HasColumnType("varchar(260)");
 
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("char(36)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("IsDeleted");
 
+                    b.HasIndex("UserId");
+
                     b.ToTable("ApplicationCases", (string)null);
+                });
+
+            modelBuilder.Entity("SoftCopyright.Domain.ApplicationUser", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<bool>("AiAssistantEnabled")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("EncryptedAiApiKey")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<string>("EncryptedAiBaseUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<string>("EncryptedAiModel")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<DateTime?>("LastLoginAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("OnboardingCompleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)");
+
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("varchar(60)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserName")
+                        .IsUnique();
+
+                    b.ToTable("ApplicationUsers", (string)null);
                 });
 
             modelBuilder.Entity("SoftCopyright.Domain.BackgroundJob", b =>

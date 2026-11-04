@@ -1,0 +1,46 @@
+@page "/login"
+@attribute [AllowAnonymous]
+
+<PageTitle>登录 · 知识产权申请材料工具</PageTitle>
+
+<div class="auth-wrap">
+    <div class="card auth-card">
+        <h1>登录</h1>
+        <p class="muted small">材料按账号隔离在本机数据库中。首次使用请先注册一个账号。</p>
+
+        @if (!string.IsNullOrWhiteSpace(Error))
+        {
+            <div class="alert alert-danger">@Error</div>
+        }
+
+        <form method="post" action="/api/auth/login">
+            <AntiforgeryToken />
+
+            <label class="field">
+                <span>登录名</span>
+                <input type="text" name="userName" required autocomplete="username" />
+            </label>
+
+            <label class="field">
+                <span>密码</span>
+                <input type="password" name="password" required autocomplete="current-password" />
+            </label>
+
+            <div class="row">
+                <button type="submit" class="btn btn-primary">登录</button>
+                <a class="btn" href="/register">注册新账号</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromQuery]
+    public string? Error { get; set; }
+}
+
+<style>
+    .auth-wrap { display: flex; justify-content: center; padding-top: 24px; }
+    .auth-card { width: 100%; max-width: 420px; }
+    .auth-card h1 { font-size: 19px; margin: 0 0 6px; }
+</style>

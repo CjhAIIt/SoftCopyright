@@ -1,7 +1,9 @@
 using System.Text.Json;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.Extensions.Options;
 using SoftCopyright.Api.Endpoints;
+using SoftCopyright.Api.Infrastructure;
 using SoftCopyright.Application;
 using SoftCopyright.Application.Api;
 using SoftCopyright.Application.Services;
@@ -33,12 +35,58 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddTransient<SoftCopyright.Api.Infrastructure.SelfBaseAddressHandler>();
+builder.Services.AddTransient<SoftCopyright.Api.Infrastructure.CookieForwardingHandler>();
 builder.Services.AddHttpClient<ICaseApiClient, CaseApiClient>(client =>
 {
     // 使用相对地址，由 SelfBaseAddressHandler 按当前请求来源补全。
     client.BaseAddress = new Uri("http://localhost");
     client.Timeout = TimeSpan.FromMinutes(2);
-}).AddHttpMessageHandler<SoftCopyright.Api.Infrastructure.SelfBaseAddressHandler>();
+})
+.AddHttpMessageHandler<SoftCopyright.Api.Infrastructure.SelfBaseAddressHandler>()
+.AddHttpMessageHandler<SoftCopyright.Api.Infrastructure.CookieForwardingHandler>();
+
+// 本地单用户应用：使用 Cookie 认证，账号只存在本机数据库中。
+builder.Services
+    .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.Cookie.Name = AccountEndpoints.CookieName;
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        options.SlidingExpiration = true;
+        options.ExpireTimeSpan = TimeSpan.FromDays(30);
+        options.LoginPath = "/login";
+        options.AccessDeniedPath = "/login";
+
+        // API 未登录时返回 401/403，而不是跳转到登录页（跳转对接口调用没有意义）。
+        options.Events.OnRedirectToLogin = context =>
+        {
+            if (context.Request.Path.StartsWithSegments("/api"))
+            {
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                return Task.CompletedTask;
+            }
+
+            context.Response.Redirect(context.RedirectUri);
+            return Task.CompletedTask;
+        };
+
+        options.Events.OnRedirectToAccessDenied = context =>
+        {
+            if (context.Request.Path.StartsWithSegments("/api"))
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                return Task.CompletedTask;
+            }
+
+            context.Response.Redirect(context.RedirectUri);
+            return Task.CompletedTask;
+        };
+    });
+
+builder.Services.AddAuthorization();
+builder.Services.AddCascadingAuthenticationState();
 
 var app = builder.Build();
 
@@ -94,11 +142,18 @@ app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
 }));
 
 app.MapHealthChecks("/health");
+app.MapAuthApi();
+app.MapAccountApi();
 app.MapSoftCopyrightApi();
 app.MapArtifactEndpoints();
 
 // 必须提供静态资源：blazor.web.js 缺失会导致页面只做 SSR 渲染、交互全部失效。
 app.MapStaticAssets();
+
+// 认证与账号作用域：必须在端点与静态资源之后、业务处理之前。
+app.UseAuthentication();
+app.UseAuthorization();
+app.UseMiddleware<AccountScopeMiddleware>();
 
 // Blazor Web App 的表单与交互需要防伪中间件。
 app.UseAntiforgery();

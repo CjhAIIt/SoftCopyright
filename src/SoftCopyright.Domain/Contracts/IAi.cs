@@ -22,8 +22,11 @@ public interface IAiProvider
 {
     string Id { get; }
 
-    /// <summary>是否可用；未配置密钥时应为 false，且不得发起任何请求。</summary>
-    bool IsEnabled { get; }
+    /// <summary>
+    /// 取当前可用的模型接入设置；返回 null 表示不可用，此时不得发起任何请求。
+    /// 设置可能来自当前账号在引导流程中的配置，也可能来自全局环境变量。
+    /// </summary>
+    Task<AiAccountSettings?> ResolveAsync(CancellationToken ct);
 
     /// <summary>请求模型返回 JSON 文本。</summary>
     Task<string> CompleteJsonAsync(AiRequest request, CancellationToken ct);

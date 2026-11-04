@@ -9,6 +9,7 @@ using SoftCopyright.Domain.Contracts;
 using SoftCopyright.Domain.Options;
 using SoftCopyright.Infrastructure.Data;
 using SoftCopyright.Infrastructure.Jobs;
+using SoftCopyright.Infrastructure.Security;
 using SoftCopyright.Infrastructure.Storage;
 
 namespace SoftCopyright.Infrastructure;
@@ -34,6 +35,8 @@ public static class InfrastructureServiceExtensions
         services.AddScoped(typeof(IRepository<>), typeof(EfRepository<>));
         services.AddSingleton<IFileStore, LocalFileStore>();
         services.AddScoped<IBackgroundJobQueue, BackgroundJobQueue>();
+        services.AddScoped<ISecretProtector, SecretProtector>();
+        services.AddSingleton<IPasswordHasher, PasswordHasher>();
         services.AddHostedService<BackgroundJobWorker>();
 
         return services;
