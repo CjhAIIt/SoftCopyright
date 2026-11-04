@@ -16,6 +16,15 @@ public interface ICaseApiClient
     /// <summary>取得当前登录账号的信息。</summary>
     Task<AccountDto?> GetAccountAsync(CancellationToken ct);
 
+    /// <summary>管理端：全部账号列表。</summary>
+    Task<IReadOnlyList<AdminAccountDto>> GetAdminAccountsAsync(CancellationToken ct);
+
+    /// <summary>管理端：数据总览。</summary>
+    Task<AdminOverviewDto> GetAdminOverviewAsync(CancellationToken ct);
+
+    /// <summary>管理端：删除账号。</summary>
+    Task DeleteAdminAccountAsync(Guid id, CancellationToken ct);
+
     Task<IReadOnlyList<CaseSummaryDto>> GetCasesAsync(CancellationToken ct);
 
     /// <summary>列出某一材料类型的案例（两条流程各自独立的工作区）。</summary>

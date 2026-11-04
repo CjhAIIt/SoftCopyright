@@ -31,8 +31,35 @@ public sealed record AccountDto(
     bool OnboardingCompleted,
     bool AiAssistantEnabled,
     bool HasAiConfiguration,
+    bool IsAdmin,
     DateTimeOffset CreatedAt,
     DateTimeOffset? LastLoginAt);
+
+/// <summary>管理端账号条目。</summary>
+public sealed record AdminAccountDto(
+    Guid Id,
+    string UserName,
+    string DisplayName,
+    bool IsAdmin,
+    bool OnboardingCompleted,
+    bool AiAssistantEnabled,
+    string AiMode,
+    int CaseCount,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? LastLoginAt);
+
+/// <summary>管理端数据总览。</summary>
+public sealed record AdminOverviewDto(
+    int TotalAccounts,
+    int AdminAccounts,
+    int OnlineAccounts,
+    int TotalCases,
+    int SoftCopyrightCases,
+    int PatentCases,
+    int TotalArtifacts,
+    int PendingJobs,
+    int FailedJobs,
+    int SuspectedSecretFiles);
 
 /// <summary>材料流程的一个工作页标签。</summary>
 public sealed record MaterialTabDto(string Key, string Label, string Route);

@@ -9,6 +9,24 @@
     <ImportMap />
     <title>知识产权申请材料工具</title>
     <HeadOutlet @rendermode="InteractiveServer" />
+    <script src="_content/SoftCopyright.Web/sc-theme.js"></script>
+    <script>
+        // 首屏前套用已保存的主题，避免刷新时闪烁。
+        (function () {
+            try {
+                var saved = localStorage.getItem('sc-theme');
+                if (saved === 'dark' || saved === 'light') {
+                    document.documentElement.setAttribute('data-theme', saved);
+                } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                } else {
+                    document.documentElement.setAttribute('data-theme', 'light');
+                }
+            } catch (e) {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
 </head>
 <body>
     <Routes @rendermode="InteractiveServer" />

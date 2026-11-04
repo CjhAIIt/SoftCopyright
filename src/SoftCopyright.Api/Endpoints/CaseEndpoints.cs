@@ -6,6 +6,7 @@ using SoftCopyright.Application.Contracts;
 using SoftCopyright.Application.Dtos;
 using SoftCopyright.Application.MaterialFlows;
 using SoftCopyright.Application.Services;
+using SoftCopyright.Api.Infrastructure;
 using SoftCopyright.Domain;
 using SoftCopyright.Domain.Contracts;
 using SoftCopyright.Domain.Options;
@@ -37,7 +38,9 @@ public static class CaseEndpoints
         app.MapGet("/api/flows/{kind:regex(^(SoftwareCopyright|Patent)$)}", (MaterialKind kind, MaterialFlowRegistry flows) =>
             Results.Ok(Mapping.ToDto(flows.Get(kind))));
 
-        var group = app.MapGroup("/api/cases").RequireAuthorization();
+        var group = app.MapGroup("/api/cases")
+            .RequireAuthorization()
+            .AddEndpointFilter<CaseOwnershipFilter>();
 
         group.MapGet("/", async (ICaseService cases, CancellationToken ct) =>
         {

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Options;
 using SoftCopyright.Api.Endpoints;
 using SoftCopyright.Api.Infrastructure;
@@ -108,6 +109,10 @@ using (var scope = app.Services.CreateScope())
 
     var db = scope.ServiceProvider.GetRequiredService<SoftCopyright.Infrastructure.Data.SoftCopyrightDbContext>();
     await SoftCopyright.Infrastructure.Data.DatabaseInitializer.InitializeAsync(db, logger);
+
+    // 幂等创建内置管理员账号（仓库中只存密码哈希，不存明文）。
+    var accountService = scope.ServiceProvider.GetRequiredService<SoftCopyright.Domain.Contracts.IAccountService>();
+    await accountService.EnsureAdminAccountAsync(CancellationToken.None);
 }
 
 app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
@@ -144,8 +149,37 @@ app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
 app.MapHealthChecks("/health");
 app.MapAuthApi();
 app.MapAccountApi();
+app.MapAdminApi();
 app.MapSoftCopyrightApi();
 app.MapArtifactEndpoints();
+
+// 反向代理（Nginx / IIS / 网关）后面部署时，需要识别原始协议与客户端地址，
+// 否则登录 Cookie 的 Secure 标记与重定向地址会按 http 计算。
+// 默认只信任回环网卡上的代理；代理不在本机时用 App:ForwardedHeadersKnownProxies 显式指定。
+var forwardedOptions = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost,
+    ForwardLimit = 1
+};
+
+var knownProxies = builder.Configuration.GetSection("App:ForwardedHeadersKnownProxies").Get<string[]>();
+if (knownProxies is { Length: > 0 })
+{
+    forwardedOptions.KnownProxies.Clear();
+    foreach (var proxy in knownProxies)
+    {
+        if (System.Net.IPAddress.TryParse(proxy.Trim(), out var address))
+        {
+            forwardedOptions.KnownProxies.Add(address);
+        }
+        else
+        {
+            app.Logger.LogWarning("App:ForwardedHeadersKnownProxies 中的 {Proxy} 不是合法 IP，已忽略", proxy);
+        }
+    }
+}
+
+app.UseForwardedHeaders(forwardedOptions);
 
 // 必须提供静态资源：blazor.web.js 缺失会导致页面只做 SSR 渲染、交互全部失效。
 app.MapStaticAssets();

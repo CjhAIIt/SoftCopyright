@@ -26,6 +26,18 @@ public sealed class CaseApiClient(HttpClient http) : ICaseApiClient
     public async Task<AccountDto?> GetAccountAsync(CancellationToken ct) =>
         await GetAsync<AccountDto>("/api/account/me", ct);
 
+    public async Task<IReadOnlyList<AdminAccountDto>> GetAdminAccountsAsync(CancellationToken ct) =>
+        await GetAsync<List<AdminAccountDto>>("/api/admin/accounts", ct) ?? [];
+
+    public async Task<AdminOverviewDto> GetAdminOverviewAsync(CancellationToken ct) =>
+        (await GetAsync<AdminOverviewDto>("/api/admin/overview", ct))!;
+
+    public async Task DeleteAdminAccountAsync(Guid id, CancellationToken ct)
+    {
+        var response = await http.DeleteAsync($"/api/admin/accounts/{id}", ct);
+        await EnsureSuccessAsync(response, ct);
+    }
+
     public async Task<IReadOnlyList<CaseSummaryDto>> GetCasesAsync(CancellationToken ct) =>
         await GetAsync<List<CaseSummaryDto>>("/api/cases", ct) ?? [];
 

@@ -30,6 +30,17 @@ public sealed class InMemoryRepository<T> : IRepository<T> where T : class
         return Task.FromResult<IReadOnlyList<T>>(_items.Where(compiled).ToList());
     }
 
+    public Task<int> CountAsync(Expression<Func<T, bool>>? predicate, CancellationToken ct)
+    {
+        if (predicate is null)
+        {
+            return Task.FromResult(_items.Count);
+        }
+
+        var compiled = predicate.Compile();
+        return Task.FromResult(_items.Count(compiled));
+    }
+
     public Task AddAsync(T entity, CancellationToken ct)
     {
         _items.Add(entity);

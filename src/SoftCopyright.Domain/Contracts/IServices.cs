@@ -9,6 +9,9 @@ public interface IRepository<T> where T : class
 
     Task<IReadOnlyList<T>> ListAsync(Expression<Func<T, bool>>? predicate, CancellationToken ct);
 
+    /// <summary>按条件计数。大数据量下应优先用它而不是把整表读进内存再数。</summary>
+    Task<int> CountAsync(Expression<Func<T, bool>>? predicate, CancellationToken ct);
+
     Task AddAsync(T entity, CancellationToken ct);
 
     void Remove(T entity);

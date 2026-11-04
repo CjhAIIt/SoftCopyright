@@ -80,10 +80,11 @@ else
                     </div>
                     <p class="small" style="margin:8px 0 0">
                         你将使用<b>完全离线</b>的免费功能：仓库扫描、证据回溯、权利要求生成、说明书组装与校验全部由本机规则引擎完成，
-                        不产生任何外部网络请求。之后仍可在账号设置里接入模型。
+                        不产生任何外部网络请求。之后仍可在<a href="/account">账号设置</a>里接入模型。
                     </p>
-                    <form method="post" action="/api/account/onboarding/skip" style="margin-top:10px">
+                    <form method="post" action="/api/account/ai/offline" style="margin-top:10px">
                         <AntiforgeryToken />
+                        <input type="hidden" name="returnTo" value="/onboarding" />
                         <button type="submit" class="btn btn-primary">确定，使用离线功能</button>
                     </form>
                 </div>
@@ -91,8 +92,9 @@ else
 
             @if (_showAiForm)
             {
-                <form method="post" action="/api/account/onboarding/ai" class="ai-form">
+                <form method="post" action="/api/account/ai" class="ai-form">
                     <AntiforgeryToken />
+                    <input type="hidden" name="returnTo" value="/onboarding" />
 
                     <label class="field">
                         <span>模型接口地址</span>
@@ -109,7 +111,7 @@ else
                         <span>API 密钥</span>
                         <input type="password" name="apiKey" required autocomplete="off" />
                         <span class="hint">
-                            密钥会用本机密钥文件做 AES-256-GCM 加密后存进本地数据库，<b>不会进仓库、不进日志</b>，也不会发往除你填写的接口以外的任何地方。
+                            密钥会用服务端密钥文件做 AES-256-GCM 加密后存进数据库，<b>不会进仓库、不进日志</b>，也不会发往除你填写的接口以外的任何地方。
                         </span>
                     </label>
 
@@ -169,12 +171,15 @@ else
 }
 
 <style>
-    .mini-card { border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; background: #fbfcfd; }
-    .mini-card::before { content: ""; display: block; width: 28px; height: 3px; border-radius: 2px; margin-bottom: 10px; }
-    .mini-soft::before { background: #4f46e5; }
-    .mini-patent::before { background: #0f766e; }
-    .mini-title { font-weight: 700; margin-bottom: 4px; }
+    .mini-card {
+        border: 1px solid var(--line); border-radius: var(--radius);
+        padding: 16px 18px; background: var(--panel-2); position: relative; overflow: hidden;
+    }
+    .mini-card::before { content: ""; display: block; width: 30px; height: 3px; border-radius: 2px; margin-bottom: 11px; }
+    .mini-soft::before { background: var(--accent); }
+    .mini-patent::before { background: var(--teal); }
+    .mini-title { font-weight: 650; margin-bottom: 5px; }
     .mini-card p { margin: 0; }
-    .ai-form { margin-top: 16px; border-top: 1px dashed var(--line); padding-top: 14px; }
-    code { background: #f1f3f5; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+    .ai-form { margin-top: 18px; border-top: 1px dashed var(--line); padding-top: 16px; }
+    code { background: var(--panel-2); border: 1px solid var(--line); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
 </style>

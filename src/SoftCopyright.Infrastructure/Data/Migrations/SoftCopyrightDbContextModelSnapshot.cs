@@ -245,6 +245,9 @@ namespace SoftCopyright.Infrastructure.Data.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("varchar(1000)");
 
+                    b.Property<bool>("IsAdmin")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<DateTime?>("LastLoginAt")
                         .HasColumnType("datetime(6)");
 

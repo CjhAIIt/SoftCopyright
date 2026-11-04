@@ -20,6 +20,8 @@ public sealed class ConfirmationService(
     IRepository<CodeSelection> selections,
     IRepository<CodeSelectionItem> selectionItems,
     IRepository<GeneratedArtifact> artifacts,
+    IAccountService accounts,
+    ICurrentAccountContext currentAccount,
     ConfirmationGateRegistry gates,
     ICaseWorkflow workflow,
     IOptions<MaterialRules> rulesOptions,
@@ -99,7 +101,7 @@ public sealed class ConfirmationService(
 
         record.DataHash = hash;
         record.ConfirmedAt = now;
-        record.ConfirmedBy = "本地用户";
+        record.ConfirmedBy = await ResolveConfirmatorAsync(ct);
         record.Note = string.IsNullOrWhiteSpace(note) ? null : note.Trim();
         record.InvalidatedAt = null;
         record.InvalidatedReason = null;
@@ -111,6 +113,19 @@ public sealed class ConfirmationService(
         logger.LogInformation("已确认阶段 {Stage}（案例 {CaseId}）", stage, caseId);
 
         return new ConfirmationStatus(stage, true, false, record.ConfirmedAt, record.ConfirmedBy, hash, record.Note, null);
+    }
+
+    /// <summary>确认人：取当前登录账号的显示名称，未登录时退化为账号标识。</summary>
+    private async Task<string> ResolveConfirmatorAsync(CancellationToken ct)
+    {
+        var userId = currentAccount.UserId;
+        if (userId is null)
+        {
+            return "未知账号";
+        }
+
+        var profile = await accounts.GetAsync(userId.Value, ct);
+        return profile is null ? "未知账号" : profile.DisplayName;
     }
 
     public async Task<string> ComputeDataHashAsync(Guid caseId, ConfirmationStage stage, CancellationToken ct)

@@ -33,11 +33,12 @@ public static class AccountEndpoints
                 : Results.Ok(ToDto(profile));
         });
 
-        // 引导流程：配置模型接入（密钥加密后落库）。
-        group.MapPost("/onboarding/ai", async (
+        // 模型接入设置：引导流程与账号设置页共用同一组端点。
+        group.MapPost("/ai", async (
             [FromForm] string? baseUrl,
             [FromForm] string? model,
             [FromForm] string? apiKey,
+            [FromForm] string? returnTo,
             IAccountService accounts,
             ICurrentAccountContext current,
             CancellationToken ct) =>
@@ -48,17 +49,22 @@ public static class AccountEndpoints
                 return Results.Redirect("/login?error=" + Uri.EscapeDataString("登录状态已失效，请重新登录。"));
             }
 
-            if (string.IsNullOrWhiteSpace(apiKey))
+            // 三项缺一不可：只填密钥无法调用模型，界面也不能显示为"已接入"。
+            if (string.IsNullOrWhiteSpace(apiKey) ||
+                string.IsNullOrWhiteSpace(baseUrl) ||
+                string.IsNullOrWhiteSpace(model))
             {
-                return Results.Redirect("/onboarding?error=" + Uri.EscapeDataString("请填写 API 密钥，或选择不使用模型。"));
+                return Results.Redirect(SafeReturn(returnTo, "/account") +
+                    "?error=" + Uri.EscapeDataString("接口地址、模型名称与 API 密钥都要填写才能启用模型。"));
             }
 
             await accounts.SaveAiSettingsAsync(userId.Value, baseUrl, model, apiKey, ct);
-            return Results.Redirect("/");
+            return Results.Redirect(SafeReturn(returnTo, "/"));
         });
 
-        // 引导流程：确认使用完全离线的免费功能。
-        group.MapPost("/onboarding/skip", async (
+        // 改为完全离线的免费功能（不保存任何模型配置）。
+        group.MapPost("/ai/offline", async (
+            [FromForm] string? returnTo,
             IAccountService accounts,
             ICurrentAccountContext current,
             CancellationToken ct) =>
@@ -70,8 +76,25 @@ public static class AccountEndpoints
             }
 
             await accounts.DisableAiAssistantAsync(userId.Value, ct);
-            return Results.Redirect("/");
+            return Results.Redirect(SafeReturn(returnTo, "/"));
         });
+    }
+
+    /// <summary>只允许站内相对路径，避免开放重定向。</summary>
+    private static string SafeReturn(string? returnTo, string fallback)
+    {
+        if (string.IsNullOrWhiteSpace(returnTo))
+        {
+            return fallback;
+        }
+
+        var value = returnTo.Trim();
+        if (!value.StartsWith('/') || value.StartsWith("//", StringComparison.Ordinal))
+        {
+            return fallback;
+        }
+
+        return value;
     }
 
     /// <summary>注册端点：注册成功后直接签发登录 Cookie。</summary>
@@ -124,12 +147,18 @@ public static class AccountEndpoints
 
     private static async Task SignInAsync(HttpContext context, AccountProfile profile)
     {
-        var identity = new ClaimsIdentity(
-            [
-                new Claim(ClaimTypes.NameIdentifier, profile.Id.ToString()),
-                new Claim(ClaimTypes.Name, profile.UserName)
-            ],
-            CookieAuthenticationDefaults.AuthenticationScheme);
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, profile.Id.ToString()),
+            new(ClaimTypes.Name, profile.UserName)
+        };
+
+        if (profile.IsAdmin)
+        {
+            claims.Add(new Claim(ClaimTypes.Role, AdminEndpoints.AdminRole));
+        }
+
+        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
 
         await context.SignInAsync(
             CookieAuthenticationDefaults.AuthenticationScheme,
@@ -144,6 +173,7 @@ public static class AccountEndpoints
         profile.OnboardingCompleted,
         profile.AiAssistantEnabled,
         profile.HasAiConfiguration,
+        profile.IsAdmin,
         profile.CreatedAt,
         profile.LastLoginAt);
 }

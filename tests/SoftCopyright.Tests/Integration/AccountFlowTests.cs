@@ -84,7 +84,7 @@ public sealed class AccountFlowTests : IClassFixture<AccountFlowTests.AccountFac
         var client = CreateClient();
         await RegisterAsync(client, "carol-" + Guid.NewGuid().ToString("N")[..8]);
 
-        var skip = await PostFormAsync(client, "/api/account/onboarding/skip", new Dictionary<string, string>());
+        var skip = await PostFormAsync(client, "/api/account/ai/offline", new Dictionary<string, string>());
         Assert.Equal(HttpStatusCode.Found, skip.StatusCode);
         Assert.Equal("/", skip.Headers.Location?.OriginalString);
 
@@ -103,7 +103,7 @@ public sealed class AccountFlowTests : IClassFixture<AccountFlowTests.AccountFac
         await RegisterAsync(client, userName);
 
         const string apiKey = "sk-test-THIS-MUST-NOT-BE-PLAINTEXT";
-        var save = await PostFormAsync(client, "/api/account/onboarding/ai", new Dictionary<string, string>
+        var save = await PostFormAsync(client, "/api/account/ai", new Dictionary<string, string>
         {
             ["baseUrl"] = "https://example.invalid/v1",
             ["model"] = "demo-model",
@@ -153,6 +153,136 @@ public sealed class AccountFlowTests : IClassFixture<AccountFlowTests.AccountFac
         // 直接访问他人的案例返回 404。
         var direct = await other.GetAsync($"/api/cases/{caseId}");
         Assert.Equal(HttpStatusCode.NotFound, direct.StatusCode);
+    }
+
+    [Fact]
+    public async Task 内置管理员账号存在且可以用固定密码登录()
+    {
+        var client = CreateClient();
+
+        var login = await PostFormAsync(client, "/api/auth/login", new Dictionary<string, string>
+        {
+            ["userName"] = "admin",
+            ["password"] = "Cjh041217@"
+        });
+
+        Assert.Equal(HttpStatusCode.Found, login.StatusCode);
+        Assert.Equal("/", login.Headers.Location?.OriginalString);
+
+        var me = await client.GetAsync("/api/account/me");
+        me.EnsureSuccessStatusCode();
+        using var meJson = JsonDocument.Parse(await me.Content.ReadAsStringAsync());
+        Assert.True(meJson.RootElement.GetProperty("isAdmin").GetBoolean());
+    }
+
+    [Fact]
+    public async Task 管理员可以查看全部账号及其接入状态()
+    {
+        var client = CreateClient();
+        await LoginAsAdminAsync(client);
+        await RegisterAsync(CreateClient(), "visible-" + Guid.NewGuid().ToString("N")[..8]);
+
+        var accounts = await client.GetAsync("/api/admin/accounts");
+        accounts.EnsureSuccessStatusCode();
+        using var json = JsonDocument.Parse(await accounts.Content.ReadAsStringAsync());
+        var items = json.RootElement.EnumerateArray().ToList();
+
+        // 至少包含内置管理员与刚注册的普通账号。
+        Assert.Contains(items, a => a.GetProperty("userName").GetString() == "admin");
+        Assert.Contains(items, a => a.GetProperty("isAdmin").GetBoolean());
+        Assert.Contains(items, a => a.GetProperty("aiMode").GetString() == "离线（免费）");
+
+        var overview = await client.GetAsync("/api/admin/overview");
+        overview.EnsureSuccessStatusCode();
+        using var overviewJson = JsonDocument.Parse(await overview.Content.ReadAsStringAsync());
+        Assert.True(overviewJson.RootElement.GetProperty("totalAccounts").GetInt32() >= 2);
+    }
+
+    [Fact]
+    public async Task 普通账号访问管理端会被拒绝()
+    {
+        var client = CreateClient();
+        await RegisterAsync(client, "normal-" + Guid.NewGuid().ToString("N")[..8]);
+
+        var accounts = await client.GetAsync("/api/admin/accounts");
+        Assert.Equal(HttpStatusCode.Forbidden, accounts.StatusCode);
+
+        var overview = await client.GetAsync("/api/admin/overview");
+        Assert.Equal(HttpStatusCode.Forbidden, overview.StatusCode);
+    }
+
+    [Fact]
+    public async Task 管理员不能删除自己但可以删除普通账号()
+    {
+        var admin = CreateClient();
+        await LoginAsAdminAsync(admin);
+
+        var adminId = await GetAccountIdAsync(admin, "admin");
+
+        var selfDelete = await admin.DeleteAsync($"/api/admin/accounts/{adminId}");
+        Assert.Equal(HttpStatusCode.Conflict, selfDelete.StatusCode);
+
+        // 建一个普通账号，再由管理员删掉。
+        var victim = CreateClient();
+        var victimName = "victim-" + Guid.NewGuid().ToString("N")[..8];
+        await RegisterAsync(victim, victimName);
+
+        var victimId = await GetAccountIdAsync(admin, victimName);
+        var deleted = await admin.DeleteAsync($"/api/admin/accounts/{victimId}");
+        Assert.Equal(HttpStatusCode.OK, deleted.StatusCode);
+
+        var after = await admin.GetAsync("/api/admin/accounts");
+        after.EnsureSuccessStatusCode();
+        using var afterJson = JsonDocument.Parse(await after.Content.ReadAsStringAsync());
+        Assert.DoesNotContain(afterJson.RootElement.EnumerateArray(), a => a.GetProperty("userName").GetString() == victimName);
+    }
+
+    private async Task LoginAsAdminAsync(HttpClient client) =>
+        await PostFormAsync(client, "/api/auth/login", new Dictionary<string, string>
+        {
+            ["userName"] = "admin",
+            ["password"] = "Cjh041217@"
+        });
+
+    private async Task<Guid> GetAccountIdAsync(HttpClient client, string userName)
+    {
+        var response = await client.GetAsync("/api/admin/accounts");
+        response.EnsureSuccessStatusCode();
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        return json.RootElement.EnumerateArray()
+            .First(a => a.GetProperty("userName").GetString() == userName)
+            .GetProperty("id")
+            .GetGuid();
+    }
+
+    [Fact]
+    public async Task 他人账号访问案例的分析与产物会被拒绝()
+    {
+        var owner = CreateClient();
+        await RegisterAsync(owner, "owner-" + Guid.NewGuid().ToString("N")[..8]);
+
+        var created = await owner.PostAsync(
+            "/api/softcopyright/cases",
+            new StringContent("{\"name\":\"私有案例\"}", System.Text.Encoding.UTF8, "application/json"));
+        created.EnsureSuccessStatusCode();
+        using var createdJson = JsonDocument.Parse(await created.Content.ReadAsStringAsync());
+        var caseId = createdJson.RootElement.GetProperty("id").GetGuid();
+
+        // 另一个账号不能看到案例详情、分析、产物，也不能下载材料包。
+        var other = CreateClient();
+        await RegisterAsync(other, "intruder-" + Guid.NewGuid().ToString("N")[..8]);
+
+        Assert.Equal(HttpStatusCode.NotFound, (await other.GetAsync($"/api/cases/{caseId}")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await other.GetAsync($"/api/cases/{caseId}/analysis")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await other.GetAsync($"/api/cases/{caseId}/artifacts")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await other.GetAsync($"/api/cases/{caseId}/package/download")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await other.GetAsync($"/api/cases/{caseId}/jobs")).StatusCode);
+
+        // 列表里也看不到。
+        var list = await other.GetAsync("/api/cases");
+        list.EnsureSuccessStatusCode();
+        using var listJson = JsonDocument.Parse(await list.Content.ReadAsStringAsync());
+        Assert.DoesNotContain(listJson.RootElement.EnumerateArray(), c => c.GetProperty("id").GetGuid() == caseId);
     }
 
     private HttpClient CreateClient() =>

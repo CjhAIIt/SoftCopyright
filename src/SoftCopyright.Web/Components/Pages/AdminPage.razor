@@ -1,0 +1,208 @@
+@page "/admin"
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+@inject ICaseApiClient Api
+
+<PageTitle>管理后台 · 知识产权申请材料工具</PageTitle>
+
+<div class="page-head">
+    <div>
+        <h1>管理后台</h1>
+        <div class="sub">查看全部账号及其接入状态、删除账号，并了解整体数据规模。</div>
+    </div>
+    <div class="actions">
+        <button class="btn" disabled="@_busy" @onclick="ReloadAsync">刷新</button>
+    </div>
+</div>
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger">@_error</div>
+}
+@if (_message is not null)
+{
+    <div class="alert alert-ok">@_message</div>
+}
+
+@if (_loading)
+{
+    <div class="card"><div class="empty">正在加载管理数据……</div></div>
+}
+else
+{
+    @if (_overview is not null)
+    {
+        <div class="stat-grid">
+            <div class="stat">
+                <div class="stat-num">@_overview.TotalAccounts</div>
+                <div class="stat-label">账号总数</div>
+            </div>
+            <div class="stat">
+                <div class="stat-num">@_overview.AdminAccounts</div>
+                <div class="stat-label">管理员</div>
+            </div>
+            <div class="stat">
+                <div class="stat-num">@_overview.OnlineAccounts</div>
+                <div class="stat-label">已接入模型</div>
+            </div>
+            <div class="stat">
+                <div class="stat-num">@_overview.TotalCases</div>
+                <div class="stat-label">案例总数</div>
+            </div>
+            <div class="stat">
+                <div class="stat-num">@_overview.SoftCopyrightCases</div>
+                <div class="stat-label">软著案例</div>
+            </div>
+            <div class="stat">
+                <div class="stat-num">@_overview.PatentCases</div>
+                <div class="stat-label">专利案例</div>
+            </div>
+            <div class="stat">
+                <div class="stat-num">@_overview.TotalArtifacts</div>
+                <div class="stat-label">材料产物</div>
+            </div>
+            <div class="stat">
+                <div class="stat-num">@_overview.FailedJobs</div>
+                <div class="stat-label">失败任务</div>
+            </div>
+        </div>
+    }
+
+    <div class="card">
+        <h2>账号列表（@(_accounts.Count)）</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>登录名</th>
+                <th>显示名称</th>
+                <th>身份</th>
+                <th>接入模式</th>
+                <th>引导</th>
+                <th>案例</th>
+                <th>最近登录</th>
+                <th style="width:90px">操作</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var account in _accounts)
+            {
+                <tr>
+                    <td class="mono small">@account.UserName</td>
+                    <td>@account.DisplayName</td>
+                    <td>
+                        @if (account.IsAdmin)
+                        {
+                            <span class="badge badge-info">管理员</span>
+                        }
+                        else
+                        {
+                            <span class="badge badge-muted">普通账号</span>
+                        }
+                    </td>
+                    <td>
+                        @if (account.AiAssistantEnabled)
+                        {
+                            <span class="badge badge-ok">已配置密钥</span>
+                        }
+                        else
+                        {
+                            <span class="badge badge-warn">离线（免费）</span>
+                        }
+                    </td>
+                    <td class="small">@(account.OnboardingCompleted ? "已完成" : "未完成")</td>
+                    <td class="small">@account.CaseCount</td>
+                    <td class="small muted">@(account.LastLoginAt?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? "从未登录")</td>
+                    <td>
+                        <button class="btn btn-sm btn-danger" disabled="@_busy" @onclick="() => _pendingDelete = account">删除</button>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
+
+@if (_pendingDelete is not null)
+{
+    <div class="card">
+        <div class="alert alert-warn">
+            确认删除账号「@_pendingDelete.UserName」？该账号名下的 @_pendingDelete.CaseCount 个案例将一并标记为删除。
+            当前登录的管理员不能删除自己，系统也必须保留至少一个管理员。
+        </div>
+        <div class="row">
+            <button class="btn btn-danger" disabled="@_busy" @onclick="DeleteConfirmedAsync">确认删除</button>
+            <button class="btn" disabled="@_busy" @onclick="() => _pendingDelete = null">取消</button>
+        </div>
+    </div>
+}
+
+@code {
+    private List<AdminAccountDto> _accounts = [];
+    private AdminOverviewDto? _overview;
+    private bool _loading = true;
+    private bool _busy;
+    private string? _error;
+    private string? _message;
+    private AdminAccountDto? _pendingDelete;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        _loading = true;
+        try
+        {
+            _accounts = (await Api.GetAdminAccountsAsync(CancellationToken.None)).ToList();
+            _overview = await Api.GetAdminOverviewAsync(CancellationToken.None);
+            _error = null;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task DeleteConfirmedAsync()
+    {
+        if (_pendingDelete is null)
+        {
+            return;
+        }
+
+        _busy = true;
+        _error = null;
+        _message = null;
+        try
+        {
+            await Api.DeleteAdminAccountAsync(_pendingDelete.Id, CancellationToken.None);
+            _message = $"账号「{_pendingDelete.UserName}」已删除。";
+            _pendingDelete = null;
+            await ReloadAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}
+
+<style>
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .stat {
+        background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+        padding: 15px 17px; box-shadow: var(--shadow-1);
+    }
+    .stat-num { font-size: 25px; font-weight: 700; line-height: 1.25; letter-spacing: -.02em; }
+    .stat-label { font-size: 12px; color: var(--muted); margin-top: 2px; }
+</style>

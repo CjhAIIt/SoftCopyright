@@ -1,3 +1,4 @@
+using SoftCopyright.Application.Contracts;
 using SoftCopyright.Domain;
 using SoftCopyright.Domain.Contracts;
 
@@ -11,7 +12,7 @@ public static class ArtifactEndpoints
         app.MapGet("/api/artifacts/{artifactId:guid}/download", async (
             Guid artifactId,
             IRepository<GeneratedArtifact> artifacts,
-            IRepository<ApplicationCase> cases,
+            ICaseService cases,
             IFileStore fileStore,
             CancellationToken ct) =>
         {
@@ -21,7 +22,8 @@ public static class ArtifactEndpoints
                 return Results.NotFound(new { error = new { code = "not_found", message = "产物不存在或已失效。" } });
             }
 
-            var caseEntity = await cases.FindAsync(artifact.CaseId, ct);
+            // 产物按案例归属账号：必须确认其所属案例对当前账号可见，否则不可下载。
+            var caseEntity = await cases.GetAsync(artifact.CaseId, ct);
             if (caseEntity is null || caseEntity.IsDeleted)
             {
                 return Results.NotFound(new { error = new { code = "not_found", message = "所属申请案例不存在。" } });

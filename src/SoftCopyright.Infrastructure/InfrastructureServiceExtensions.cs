@@ -25,11 +25,11 @@ public static class InfrastructureServiceExtensions
 
     public static IServiceCollection AddSoftCopyrightInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        services.Configure<StorageOptions>(configuration.GetSection(StorageOptions.SectionName));
-        services.Configure<ScanOptions>(configuration.GetSection(ScanOptions.SectionName));
-        services.Configure<MaterialRules>(configuration.GetSection(MaterialRules.SectionName));
-        services.Configure<AiOptions>(configuration.GetSection(AiOptions.SectionName));
-        services.Configure<GitImportOptions>(configuration.GetSection(GitImportOptions.SectionName));
+        services.Configure<StorageOptions>(o => OptionsBinder.Bind(o, configuration.GetSection(StorageOptions.SectionName)));
+        services.Configure<ScanOptions>(o => OptionsBinder.Bind(o, configuration.GetSection(ScanOptions.SectionName)));
+        services.Configure<MaterialRules>(o => OptionsBinder.Bind(o, configuration.GetSection(MaterialRules.SectionName)));
+        services.Configure<AiOptions>(o => OptionsBinder.Bind(o, configuration.GetSection(AiOptions.SectionName)));
+        services.Configure<GitImportOptions>(o => OptionsBinder.Bind(o, configuration.GetSection(GitImportOptions.SectionName)));
 
         services.AddDbContext<SoftCopyrightDbContext>(options => ConfigureDatabase(options, configuration));
         services.AddScoped(typeof(IRepository<>), typeof(EfRepository<>));

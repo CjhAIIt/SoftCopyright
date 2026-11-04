@@ -22,6 +22,9 @@ public sealed class ApplicationUser
     /// <summary>是否已走过引导流程。</summary>
     public bool OnboardingCompleted { get; set; }
 
+    /// <summary>是否为管理员。管理员可以查看账号列表、删除账号并查看总体数据。</summary>
+    public bool IsAdmin { get; set; }
+
     /// <summary>是否启用模型辅助。false 表示只用完全离线的免费功能。</summary>
     public bool AiAssistantEnabled { get; set; }
 

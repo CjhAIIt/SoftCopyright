@@ -30,6 +30,20 @@ public interface IAccountService
     /// <summary>标记引导流程已完成。</summary>
     Task CompleteOnboardingAsync(Guid id, CancellationToken ct);
 
+    /// <summary>
+    /// 幂等创建固定管理员账号。已存在时只补齐标记，不重置密码。
+    /// </summary>
+    Task EnsureAdminAccountAsync(CancellationToken ct);
+
+    /// <summary>列出全部账号（管理端）。</summary>
+    Task<IReadOnlyList<AdminAccountView>> ListAccountsAsync(CancellationToken ct);
+
+    /// <summary>数据总览（管理端）。</summary>
+    Task<AdminOverview> GetOverviewAsync(CancellationToken ct);
+
+    /// <summary>删除账号。管理员不能删除自己，也不能删除最后一个管理员。</summary>
+    Task<(bool Success, string? Error)> DeleteAccountAsync(Guid id, Guid requesterId, CancellationToken ct);
+
     /// <summary>保存模型接入设置（密钥加密后存储）。</summary>
     Task SaveAiSettingsAsync(Guid id, string? baseUrl, string? model, string? apiKey, CancellationToken ct);
 
@@ -91,8 +105,33 @@ public sealed record AccountProfile(
     bool OnboardingCompleted,
     bool AiAssistantEnabled,
     bool HasAiConfiguration,
+    bool IsAdmin,
     DateTimeOffset CreatedAt,
     DateTimeOffset? LastLoginAt);
+
+/// <summary>管理端看到的账号条目。</summary>
+/// <param name="Account">账号基本信息。</param>
+/// <param name="IsAdmin">是否为管理员。</param>
+/// <param name="CaseCount">该账号名下的案例数。</param>
+/// <param name="AiMode">接入模式：离线（免费）或已配置密钥。</param>
+public sealed record AdminAccountView(
+    AccountProfile Account,
+    bool IsAdmin,
+    int CaseCount,
+    string AiMode);
+
+/// <summary>管理端的数据总览。</summary>
+public sealed record AdminOverview(
+    int TotalAccounts,
+    int AdminAccounts,
+    int OnlineAccounts,
+    int TotalCases,
+    int SoftCopyrightCases,
+    int PatentCases,
+    int TotalArtifacts,
+    int PendingJobs,
+    int FailedJobs,
+    int SuspectedSecretFiles);
 
 /// <summary>账号的模型接入设置（明文，仅在内存中使用）。</summary>
 public sealed record AiAccountSettings(string BaseUrl, string Model, string ApiKey);

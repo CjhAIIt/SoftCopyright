@@ -1,0 +1,164 @@
+@page "/account"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject ICaseApiClient Api
+
+<PageTitle>账号设置 · 知识产权申请材料工具</PageTitle>
+
+<div class="page-head">
+    <div>
+        <h1>账号设置</h1>
+        <div class="sub">账号信息与模型接入设置。模型接入是可选项：不配置也能完整使用本工具。</div>
+    </div>
+</div>
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger">@_error</div>
+}
+
+@if (_loading)
+{
+    <div class="card"><div class="empty">正在加载账号信息……</div></div>
+}
+else if (_account is not null)
+{
+    <div class="card">
+        <h2>账号信息</h2>
+        <table>
+            <tbody>
+            <tr>
+                <td style="width:180px" class="small muted">登录名</td>
+                <td class="mono">@_account.UserName</td>
+            </tr>
+            <tr>
+                <td class="small muted">显示名称</td>
+                <td>@_account.DisplayName</td>
+            </tr>
+            <tr>
+                <td class="small muted">身份</td>
+                <td>
+                    @if (_account.IsAdmin)
+                    {
+                        <span class="badge badge-info">管理员</span>
+                    }
+                    else
+                    {
+                        <span class="badge badge-muted">普通账号</span>
+                    }
+                </td>
+            </tr>
+            <tr>
+                <td class="small muted">注册时间</td>
+                <td class="small">@_account.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+            </tr>
+            <tr>
+                <td class="small muted">最近登录</td>
+                <td class="small">@(_account.LastLoginAt?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? "—")</td>
+            </tr>
+            <tr>
+                <td class="small muted">模型接入</td>
+                <td>
+                    @if (_account.AiAssistantEnabled)
+                    {
+                        <span class="badge badge-ok">已接入模型</span>
+                    }
+                    else
+                    {
+                        <span class="badge badge-warn">离线（免费功能）</span>
+                    }
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <h2>模型接入</h2>
+
+        @if (_account.AiAssistantEnabled)
+        {
+            <div class="alert alert-ok">
+                已接入模型接口。模型只能在<b>不改事实、不新增技术特征</b>的前提下润色措辞：
+                输出必须通过 JSON 强校验与证据回验，无有效证据一律降级为「推断」，调用失败自动回退到离线规则实现。
+            </div>
+            <form method="post" action="/api/account/ai/offline">
+                <AntiforgeryToken />
+                <input type="hidden" name="returnTo" value="/account" />
+                <button type="submit" class="btn">改为完全离线（清除密钥）</button>
+            </form>
+        }
+        else
+        {
+            <p class="small muted">
+                当前使用<b>完全离线</b>的免费功能：扫描、取证、权利要求生成、说明书组装与校验全部由本机规则引擎完成，
+                不产生任何外部网络请求。填入模型接口后，模型可以帮忙润色措辞。
+            </p>
+
+            <form method="post" action="/api/account/ai">
+                <AntiforgeryToken />
+                <input type="hidden" name="returnTo" value="/account" />
+
+                <label class="field">
+                    <span>模型接口地址</span>
+                    <input type="text" name="baseUrl" placeholder="https://your-gateway/v1" required />
+                    <span class="hint">OpenAI 兼容接口，填到 <code>/v1</code> 为止即可。</span>
+                </label>
+
+                <label class="field">
+                    <span>模型名称</span>
+                    <input type="text" name="model" placeholder="例如：your-model" required />
+                </label>
+
+                <label class="field">
+                    <span>API 密钥</span>
+                    <input type="password" name="apiKey" required autocomplete="off" />
+                    <span class="hint">
+                        密钥会用服务端密钥文件做 AES-256-GCM 加密后存进数据库，<b>不会进仓库、不进日志</b>。
+                    </span>
+                </label>
+
+                <div class="row">
+                    <button type="submit" class="btn btn-primary">保存并启用</button>
+                    <a class="btn" href="/">返回材料入口</a>
+                </div>
+            </form>
+        }
+    </div>
+}
+
+@code {
+    private AccountDto? _account;
+    private bool _loading = true;
+    private string? _error;
+
+    [SupplyParameterFromQuery]
+    public string? Error { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _error = Error;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            _account = await Api.GetAccountAsync(CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}
+
+<style>
+    code { background: var(--panel-2); border: 1px solid var(--line); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+</style>

@@ -16,6 +16,11 @@ public sealed class EfRepository<T>(SoftCopyrightDbContext db) : IRepository<T> 
             ? await db.Set<T>().ToListAsync(ct)
             : await db.Set<T>().Where(predicate).ToListAsync(ct);
 
+    public async Task<int> CountAsync(Expression<Func<T, bool>>? predicate, CancellationToken ct) =>
+        predicate is null
+            ? await db.Set<T>().CountAsync(ct)
+            : await db.Set<T>().CountAsync(predicate, ct);
+
     public async Task AddAsync(T entity, CancellationToken ct) => await db.Set<T>().AddAsync(entity, ct);
 
     public void Remove(T entity) => db.Set<T>().Remove(entity);
