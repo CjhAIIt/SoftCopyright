@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using SoftCopyright.AI.Patent;
 using SoftCopyright.Domain.Contracts;
 
 namespace SoftCopyright.AI;
@@ -16,6 +17,9 @@ public static class AiServiceExtensions
         services.AddSingleton<HttpModelAnalyzer>();
         services.AddSingleton<IProjectAnalyzer, ProjectAnalyzerRouter>();
         services.AddSingleton<IMaterialDraftGenerator, MaterialDraftGenerator>();
+        services.AddSingleton<RuleBasedPatentDraftGenerator>();
+        services.AddSingleton<HttpPatentDraftGenerator>();
+        services.AddSingleton<IPatentDraftGenerator, PatentDraftGeneratorRouter>();
 
         return services;
     }

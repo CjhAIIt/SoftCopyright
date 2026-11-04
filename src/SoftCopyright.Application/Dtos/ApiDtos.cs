@@ -17,10 +17,11 @@ public sealed record CaseSummaryDto(
     int ConfirmedCount,
     int TotalConfirmations,
     string? SourceRepositoryUrl = null,
-    string? SourceCommit = null);
+    string? SourceCommit = null,
+    MaterialKind MaterialKind = MaterialKind.SoftwareCopyright);
 
 /// <summary>创建案例请求。</summary>
-public sealed record CreateCaseRequest(string? Name);
+public sealed record CreateCaseRequest(string? Name, MaterialKind MaterialKind = MaterialKind.SoftwareCopyright);
 
 /// <summary>创建案例结果。</summary>
 public sealed record CreateCaseResponse(Guid Id, string Name);
@@ -185,6 +186,56 @@ public sealed record GitImportResultDto(
     string Url,
     string? Commit,
     int FileCount,
+    IReadOnlyList<string> Warnings);
+
+/// <summary>技术特征 DTO。</summary>
+public sealed record TechnicalFeatureDto(
+    string Title,
+    string Description,
+    bool Confirmed,
+    IReadOnlyList<EvidenceDto> Evidence);
+
+/// <summary>实施例 DTO。</summary>
+public sealed record EmbodimentDto(
+    string Title,
+    string Description,
+    bool Confirmed,
+    IReadOnlyList<EvidenceDto> Evidence);
+
+/// <summary>权利要求 DTO。</summary>
+public sealed record PatentClaimDto(
+    int Number,
+    ClaimType Type,
+    int? DependsOn,
+    string Text,
+    IReadOnlyList<TechnicalFeatureDto> Features);
+
+/// <summary>技术交底书 DTO。</summary>
+public sealed record PatentDisclosureDto(
+    string Title,
+    string TechnicalField,
+    string BackgroundTechnology,
+    string ProblemStatement,
+    string TechnicalSolution,
+    string BeneficialEffects,
+    string DrawingDescription,
+    string PriorArt,
+    string PriorArtSources,
+    string Abstract,
+    string ApplicantName,
+    string InventorNames,
+    PatentType PatentType,
+    IReadOnlyList<TechnicalFeatureDto> Features,
+    IReadOnlyList<EmbodimentDto> Embodiments,
+    IReadOnlyList<string> Terminology,
+    IReadOnlyList<PatentClaimDto> Claims);
+
+/// <summary>专利草稿结果 DTO。</summary>
+public sealed record PatentDraftDto(
+    string Abstract,
+    IReadOnlyList<TechnicalFeatureDto> Features,
+    IReadOnlyList<EmbodimentDto> Embodiments,
+    IReadOnlyList<PatentClaimDto> Claims,
     IReadOnlyList<string> Warnings);
 
 /// <summary>扫描摘要 DTO。</summary>

@@ -1,4 +1,5 @@
 using SoftCopyright.Application.Dtos;
+using SoftCopyright.Domain;
 using SoftCopyright.Domain.Contracts;
 
 namespace SoftCopyright.Application.Api;
@@ -9,6 +10,8 @@ public interface ICaseApiClient
     Task<IReadOnlyList<CaseSummaryDto>> GetCasesAsync(CancellationToken ct);
 
     Task<CreateCaseResponse> CreateCaseAsync(string? name, CancellationToken ct);
+
+    Task<CreateCaseResponse> CreateCaseAsync(string? name, MaterialKind materialKind, CancellationToken ct);
 
     Task<CaseDetailDto> GetCaseAsync(Guid id, CancellationToken ct);
 
@@ -43,4 +46,10 @@ public interface ICaseApiClient
     Task<IReadOnlyList<ArtifactDto>> GetArtifactsAsync(Guid id, CancellationToken ct);
 
     Task<IReadOnlyList<ValidationDto>> GetValidationAsync(Guid id, CancellationToken ct);
+
+    Task<PatentDisclosureDto> GetPatentDisclosureAsync(Guid id, CancellationToken ct);
+
+    Task<PatentDisclosureDto> SavePatentDisclosureAsync(Guid id, PatentDisclosureUpdateRequest request, CancellationToken ct);
+
+    Task<JobDto> TriggerPatentDraftAsync(Guid id, CancellationToken ct);
 }

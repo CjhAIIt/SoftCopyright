@@ -47,3 +47,20 @@ public interface IMaterialPackageBuilder
     /// <summary>把已生成的产物打包为 ZIP。</summary>
     Task<byte[]> BuildAsync(IReadOnlyList<GeneratedDocument> documents, CancellationToken ct);
 }
+
+/// <summary>专利申请文件生成请求。</summary>
+public sealed record PatentDocumentRequest(
+    string Title,
+    string Version,
+    InventionDisclosure Disclosure,
+    IReadOnlyList<PatentClaim> Claims,
+    IReadOnlyList<ValidationResult> ValidationResults,
+    string RulesVersion,
+    string RulesSource,
+    DateTimeOffset GeneratedAt);
+
+/// <summary>专利申请文件生成器：权利要求书、说明书、摘要与技术交底书。</summary>
+public interface IPatentDocumentGenerator
+{
+    Task<IReadOnlyList<GeneratedDocument>> GenerateAsync(PatentDocumentRequest request, CancellationToken ct);
+}

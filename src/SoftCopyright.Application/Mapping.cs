@@ -68,6 +68,10 @@ public static class Mapping
         ArtifactKind.ValidationReport => "校验报告",
         ArtifactKind.Manifest => "生成清单",
         ArtifactKind.Package => "材料包",
+        ArtifactKind.PatentClaims => "权利要求书",
+        ArtifactKind.PatentSpecification => "说明书",
+        ArtifactKind.PatentAbstract => "摘要",
+        ArtifactKind.PatentDisclosure => "技术交底书",
         _ => kind.ToString()
     };
 

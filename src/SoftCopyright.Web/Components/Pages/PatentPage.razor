@@ -1,0 +1,427 @@
+@page "/cases/{CaseId:guid}/patent"
+@rendermode InteractiveServer
+@inject ICaseApiClient Api
+@implements IDisposable
+
+<CaseHeader CaseId="CaseId" ActiveTab="patent" />
+
+<div class="page-head">
+    <div>
+        <h1>技术交底书</h1>
+        <div class="sub">交底书是专利材料的唯一真源：摘要、权利要求书与说明书都由它派生。技术特征会自动绑定仓库中的真实代码证据。</div>
+    </div>
+    <div class="actions">
+        <button class="btn" disabled="@_busy" @onclick="SaveAsync">保存</button>
+        <button class="btn" disabled="@_busy" @onclick="DraftAsync">生成专利草稿</button>
+        <button class="btn btn-primary" disabled="@_busy" @onclick="ConfirmDraftAsync">确认草稿</button>
+    </div>
+</div>
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger">@_error</div>
+}
+@if (_message is not null)
+{
+    <div class="alert alert-ok">@_message</div>
+}
+
+<div class="alert alert-warn">
+    本工具产出的是专利申请文件<b>初稿</b>：权利要求的保护范围、新颖性与创造性，以及说明书是否充分公开，<b>必须由专利代理人复核</b>。
+    本工具不提供现有技术检索，也不对新颖性作任何判断；现有技术需由申请人自行填写并注明来源。
+</div>
+
+<div class="card">
+    <h2>交底书基本信息</h2>
+    <div class="grid-2">
+        <label class="field">
+            <span>发明名称 <span class="required">*</span></span>
+            <input type="text" @bind="_form.Title" placeholder="例如：一种基于证据回溯的代码仓库分析方法" />
+        </label>
+        <label class="field">
+            <span>专利类型</span>
+            <select @bind="_form.PatentType">
+                <option value="Invention">发明专利</option>
+                <option value="UtilityModel">实用新型</option>
+            </select>
+        </label>
+        <label class="field">
+            <span>申请人</span>
+            <input type="text" @bind="_form.ApplicantName" />
+        </label>
+        <label class="field">
+            <span>发明人</span>
+            <input type="text" @bind="_form.InventorNames" placeholder="多人用顿号分隔" />
+        </label>
+    </div>
+</div>
+
+<div class="card">
+    <h2>说明书五部分</h2>
+    <label class="field">
+        <span>技术领域 <span class="required">*</span></span>
+        <textarea @bind="_form.TechnicalField" placeholder="本申请涉及……领域"></textarea>
+    </label>
+    <label class="field">
+        <span>背景技术 <span class="required">*</span></span>
+        <textarea @bind="_form.BackgroundTechnology" placeholder="现有技术如何解决该问题，存在哪些不足"></textarea>
+    </label>
+    <label class="field">
+        <span>要解决的技术问题 <span class="required">*</span></span>
+        <textarea @bind="_form.ProblemStatement"></textarea>
+    </label>
+    <label class="field">
+        <span>技术方案 <span class="required">*</span></span>
+        <textarea @bind="_form.TechnicalSolution" placeholder="每一项技术特征用分号分隔，系统会为每项特征寻找代码证据"></textarea>
+        <span class="hint">用「；」分隔技术特征。系统会逐项在仓库中匹配证据；找不到出处的特征会标记为「待确认」并在校验中提示。</span>
+    </label>
+    <label class="field">
+        <span>有益效果 <span class="required">*</span></span>
+        <textarea @bind="_form.BeneficialEffects"></textarea>
+    </label>
+    <label class="field">
+        <span>附图说明</span>
+        <textarea @bind="_form.DrawingDescription" placeholder="图1为本方法的整体流程图……"></textarea>
+        <span class="hint">本工具暂不自动生成附图，图号与附图由申请人补充。</span>
+    </label>
+</div>
+
+<div class="card">
+    <h2>现有技术（由申请人填写）</h2>
+    <label class="field">
+        <span>现有技术描述</span>
+        <textarea @bind="_form.PriorArt"></textarea>
+    </label>
+    <label class="field">
+        <span>现有技术来源 <span class="required">*</span></span>
+        <input type="text" @bind="_form.PriorArtSources" placeholder="例如：CN123456789A 第 3 页权利要求 1" />
+        <span class="hint">必须注明可核验的出处；系统不会代为检索，也不会编造对比文件。</span>
+    </label>
+</div>
+
+@if (_disclosure is not null)
+{
+    <div class="card">
+        <h2>摘要</h2>
+        <p class="muted small">@(_disclosure.Abstract.Length) / 300 字</p>
+        <div class="codeblock">@_disclosure.Abstract</div>
+    </div>
+
+    <div class="card">
+        <h2>权利要求书（@(_disclosure.Claims.Count) 条）</h2>
+        @if (_disclosure.Claims.Count == 0)
+        {
+            <div class="empty">尚未生成。填写交底书后点击「生成专利草稿」。</div>
+        }
+        else
+        {
+            <table>
+                <thead>
+                <tr>
+                    <th style="width:70px">编号</th>
+                    <th style="width:110px">类型</th>
+                    <th style="width:90px">引用</th>
+                    <th>权利要求正文</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var claim in _disclosure.Claims)
+                {
+                    <tr>
+                        <td>@claim.Number</td>
+                        <td class="small">@(claim.Type == ClaimType.Independent ? "独立权利要求" : "从属权利要求")</td>
+                        <td class="small">@(claim.DependsOn?.ToString() ?? "-")</td>
+                        <td class="small">@claim.Text</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        }
+    </div>
+
+    <div class="card">
+        <h2>技术特征与证据对应表</h2>
+        @if (_disclosure.Features.Count == 0)
+        {
+            <div class="empty">尚未提取技术特征。</div>
+        }
+        else
+        {
+            <table>
+                <thead>
+                <tr>
+                    <th style="width:36%">技术特征</th>
+                    <th style="width:90px">证据状态</th>
+                    <th>证据出处</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var feature in _disclosure.Features)
+                {
+                    <tr>
+                        <td class="small">@feature.Description</td>
+                        <td>
+                            <span class="badge @(feature.Confirmed ? "badge-ok" : "badge-warn")">
+                                @(feature.Confirmed ? "已回溯" : "待确认")
+                            </span>
+                        </td>
+                        <td class="small mono">
+                            @if (feature.Evidence.Count == 0)
+                            {
+                                <span class="muted">未找到可回溯证据</span>
+                            }
+                            else
+                            {
+                                @foreach (var evidence in feature.Evidence)
+                                {
+                                    <div>@evidence.RelativePath@(evidence.StartLine is null ? "" : $" 第 {evidence.StartLine} 行")</div>
+                                }
+                            }
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        }
+    </div>
+
+    <div class="card">
+        <h2>实施例（@(_disclosure.Embodiments.Count) 个）</h2>
+        @if (_disclosure.Embodiments.Count == 0)
+        {
+            <div class="empty">尚未生成实施例。</div>
+        }
+        else
+        {
+            @foreach (var embodiment in _disclosure.Embodiments)
+            {
+                <h3>@embodiment.Title</h3>
+                <p class="small">@embodiment.Description</p>
+            }
+        }
+        <p class="muted small">建议至少 3 个实施例，否则说明书可能公开不充分。</p>
+    </div>
+
+    <div class="card">
+        <h2>专利材料校验</h2>
+        @if (_validation.Count == 0)
+        {
+            <div class="empty">尚未执行校验。</div>
+        }
+        else
+        {
+            <table>
+                <thead>
+                <tr>
+                    <th style="width:110px">规则</th>
+                    <th style="width:100px">级别</th>
+                    <th style="width:150px">检查项</th>
+                    <th>说明</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var item in _validation.Where(v => v.RuleId.StartsWith("P-", StringComparison.Ordinal)))
+                {
+                    <tr>
+                        <td class="mono small">@item.RuleId</td>
+                        <td><span class="badge @LevelBadge(item.Level)">@item.LevelText</span></td>
+                        <td class="small">@item.Title</td>
+                        <td class="small">@item.Message</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public Guid CaseId { get; set; }
+
+    private PatentDisclosureForm _form = new();
+    private PatentDisclosureDto? _disclosure;
+    private List<ValidationDto> _validation = [];
+    private bool _busy;
+    private string? _error;
+    private string? _message;
+    private System.Threading.Timer? _timer;
+    private string? _draftJobState;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadAsync();
+        _timer ??= new System.Threading.Timer(async _ => await InvokeAsync(PollAsync), null, 2000, 2000);
+    }
+
+    /// <summary>
+    /// 草稿由后台任务生成，页面需要自动跟进任务状态并在完成后刷新结果。
+    /// 只刷新结果区，不覆盖用户正在填写的表单。
+    /// </summary>
+    private async Task PollAsync()
+    {
+        try
+        {
+            var jobs = await Api.GetJobsAsync(CaseId, CancellationToken.None);
+            var draft = jobs.FirstOrDefault(j => j.Type == JobType.PatentDraft);
+            var state = draft is null ? null : $"{draft.Status}:{draft.ProgressPercent}:{draft.ErrorMessage}";
+
+            if (string.Equals(state, _draftJobState, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            _draftJobState = state;
+            await RefreshResultsAsync();
+            StateHasChanged();
+        }
+        catch (Exception)
+        {
+            // 轮询失败不打断页面，用户仍可手动保存或重新生成。
+        }
+    }
+
+    private async Task RefreshResultsAsync()
+    {
+        _disclosure = await Api.GetPatentDisclosureAsync(CaseId, CancellationToken.None);
+        _validation = (await Api.GetValidationAsync(CaseId, CancellationToken.None)).ToList();
+    }
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            _disclosure = await Api.GetPatentDisclosureAsync(CaseId, CancellationToken.None);
+            _form = new PatentDisclosureForm
+            {
+                Title = _disclosure.Title,
+                TechnicalField = _disclosure.TechnicalField,
+                BackgroundTechnology = _disclosure.BackgroundTechnology,
+                ProblemStatement = _disclosure.ProblemStatement,
+                TechnicalSolution = _disclosure.TechnicalSolution,
+                BeneficialEffects = _disclosure.BeneficialEffects,
+                DrawingDescription = _disclosure.DrawingDescription,
+                PriorArt = _disclosure.PriorArt,
+                PriorArtSources = _disclosure.PriorArtSources,
+                ApplicantName = _disclosure.ApplicantName,
+                InventorNames = _disclosure.InventorNames,
+                PatentType = _disclosure.PatentType
+            };
+
+            _validation = (await Api.GetValidationAsync(CaseId, CancellationToken.None)).ToList();
+            _error = null;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _busy = true;
+        _error = null;
+        _message = null;
+        try
+        {
+            _disclosure = await Api.SavePatentDisclosureAsync(CaseId, ToRequest(_form), CancellationToken.None);
+            _message = "技术交底书已保存。";
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task DraftAsync()
+    {
+        _busy = true;
+        _error = null;
+        _message = null;
+        try
+        {
+            await SaveInternalAsync();
+            await Api.TriggerPatentDraftAsync(CaseId, CancellationToken.None);
+            _message = "专利草稿生成任务已提交，完成后刷新本页查看权利要求书与校验结果。";
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task ConfirmDraftAsync()
+    {
+        _busy = true;
+        _error = null;
+        _message = null;
+        try
+        {
+            await Api.ConfirmAsync(CaseId, "DocumentDraft", "在「专利交底书」页确认草稿", CancellationToken.None);
+            _message = "草稿已确认，可以生成专利申请文件。";
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task SaveInternalAsync()
+    {
+        _disclosure = await Api.SavePatentDisclosureAsync(CaseId, ToRequest(_form), CancellationToken.None);
+    }
+
+    private static PatentDisclosureUpdateRequest ToRequest(PatentDisclosureForm form) => new(
+        form.Title,
+        form.TechnicalField,
+        form.BackgroundTechnology,
+        form.ProblemStatement,
+        form.TechnicalSolution,
+        form.BeneficialEffects,
+        form.DrawingDescription,
+        form.PriorArt,
+        form.PriorArtSources,
+        form.ApplicantName,
+        form.InventorNames,
+        form.PatentType);
+
+    private static string LevelBadge(ValidationLevel level) => level switch
+    {
+        ValidationLevel.Pass => "badge-ok",
+        ValidationLevel.Warning => "badge-warn",
+        _ => "badge-danger"
+    };
+
+    private sealed class PatentDisclosureForm
+    {
+        public string Title { get; set; } = string.Empty;
+        public string TechnicalField { get; set; } = string.Empty;
+        public string BackgroundTechnology { get; set; } = string.Empty;
+        public string ProblemStatement { get; set; } = string.Empty;
+        public string TechnicalSolution { get; set; } = string.Empty;
+        public string BeneficialEffects { get; set; } = string.Empty;
+        public string DrawingDescription { get; set; } = string.Empty;
+        public string PriorArt { get; set; } = string.Empty;
+        public string PriorArtSources { get; set; } = string.Empty;
+        public string ApplicantName { get; set; } = string.Empty;
+        public string InventorNames { get; set; } = string.Empty;
+        public PatentType PatentType { get; set; } = PatentType.Invention;
+    }
+
+    public void Dispose()
+    {
+        _timer?.Dispose();
+    }
+}

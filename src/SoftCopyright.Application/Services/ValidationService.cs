@@ -15,6 +15,8 @@ public sealed partial class ValidationService(
     IRepository<ProjectFile> projectFiles,
     IRepository<GeneratedArtifact> artifacts,
     IRepository<ProjectAnalysis> analyses,
+    IRepository<InventionDisclosure> disclosures,
+    IRepository<PatentClaim> patentClaims,
     IFileStore fileStore,
     IOptions<MaterialRules> rulesOptions) : IValidationService
 {
@@ -38,18 +40,81 @@ public sealed partial class ValidationService(
         var files = await projectFiles.ListAsync(f => f.CaseId == caseId, ct);
         var caseArtifacts = await artifacts.ListAsync(a => a.CaseId == caseId, ct);
         var analysis = (await analyses.ListAsync(a => a.CaseId == caseId, ct)).OrderByDescending(a => a.CreatedAt).FirstOrDefault();
+        var disclosure = (await disclosures.ListAsync(d => d.CaseId == caseId, ct)).FirstOrDefault();
+        var claims = await patentClaims.ListAsync(c => c.CaseId == caseId, ct);
 
-        results.AddRange(CheckRequiredFields(info));
-        results.Add(CheckConsistency(caseEntity, info));
-        results.Add(CheckSourceProgramAmount(info, items));
-        results.Add(CheckTraceability(items, files));
+        var isPatent = caseEntity.MaterialKind == MaterialKind.Patent;
+
+        if (isPatent)
+        {
+            // 专利申请文件不提交软件鉴别材料，代码范围与申请表一致性规则不适用。
+            results.Add(CheckPatentRequiredFields(disclosure));
+        }
+        else
+        {
+            results.AddRange(CheckRequiredFields(info));
+            results.Add(CheckConsistency(caseEntity, info));
+            results.Add(CheckSourceProgramAmount(info, items));
+            results.Add(CheckTraceability(items, files));
+        }
+
         results.Add(CheckArtifacts(caseArtifacts, includeArtifactCheck));
         results.Add(CheckRulesVersion(caseEntity));
-        results.Add(CheckPendingItems(caseEntity, analysis));
+        results.Add(CheckPendingItems(caseEntity, analysis, isPatent, disclosure));
         results.Add(CheckSecrets(files));
         results.Add(CheckCoverage(analysis));
 
+        // 专利类案例追加专利材料校验（说明书五部分、权利要求编号与引用关系等）。
+        if (isPatent)
+        {
+            results.AddRange(PatentValidationRules.Evaluate(disclosure, claims));
+        }
+
         return results;
+    }
+
+    /// <summary>专利案例的必填项以技术交底书为准，不要求填写软著申请表字段。</summary>
+    private static ValidationResult CheckPatentRequiredFields(InventionDisclosure? disclosure)
+    {
+        var missing = new List<string>();
+
+        if (disclosure is null)
+        {
+            missing.Add("技术交底书");
+        }
+        else
+        {
+            if (string.IsNullOrWhiteSpace(disclosure.Title))
+            {
+                missing.Add("发明名称");
+            }
+
+            if (string.IsNullOrWhiteSpace(disclosure.TechnicalSolution))
+            {
+                missing.Add("技术方案");
+            }
+
+            if (string.IsNullOrWhiteSpace(disclosure.ApplicantName))
+            {
+                missing.Add("申请人");
+            }
+
+            if (string.IsNullOrWhiteSpace(disclosure.InventorNames))
+            {
+                missing.Add("发明人");
+            }
+        }
+
+        if (missing.Count == 0)
+        {
+            return new ValidationResult("R-FIELDS-01", ValidationLevel.Pass, "交底书必填项完整性",
+                "技术交底书的必填项均已填写。", "MaterialRules", null);
+        }
+
+        return new ValidationResult("R-FIELDS-01", ValidationLevel.ActionRequired, "交底书必填项完整性",
+            $"以下必填项尚未填写：{string.Join("、", missing)}。",
+            "MaterialRules",
+            "在「专利交底书」页补全后重新确认。");
     }
 
     private IEnumerable<ValidationResult> CheckRequiredFields(ApplicantInfo? info)
@@ -232,7 +297,7 @@ public sealed partial class ValidationService(
             $"规则版本 {caseEntity.RulesVersion} 已记录在案。");
     }
 
-    private static ValidationResult CheckPendingItems(ApplicationCase caseEntity, ProjectAnalysis? analysis)
+    private static ValidationResult CheckPendingItems(ApplicationCase caseEntity, ProjectAnalysis? analysis, bool isPatent, InventionDisclosure? disclosure)
     {
         var pending = new List<string>();
 
@@ -250,7 +315,18 @@ public sealed partial class ValidationService(
             }
         }
 
-        if (caseEntity.SoftwareFullName is null)
+        if (isPatent)
+        {
+            if (disclosure is null)
+            {
+                pending.Add("尚未填写技术交底书。");
+            }
+            else if (string.IsNullOrWhiteSpace(disclosure.Title))
+            {
+                pending.Add("发明名称尚未登记。");
+            }
+        }
+        else if (caseEntity.SoftwareFullName is null)
         {
             pending.Add("软件全称尚未登记。");
         }

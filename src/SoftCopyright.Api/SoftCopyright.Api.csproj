@@ -21,6 +21,8 @@
       缺失会导致页面只做服务端渲染、交互全部失效（按钮无响应）。
     -->
     <PackageReference Include="Microsoft.AspNetCore.App.Internal.Assets" />
+    <!-- 仅用于开发期生成 EF Core 迁移，不进入发布产物 -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="All" />
   </ItemGroup>
 
 </Project>

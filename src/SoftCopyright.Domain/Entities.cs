@@ -32,6 +32,9 @@ public sealed class ApplicationCase
     /// <summary>来源仓库提交号（从 Git 导入时记录）。</summary>
     public string? SourceCommit { get; set; }
 
+    /// <summary>申请材料类型：软著登记或专利申请。</summary>
+    public MaterialKind MaterialKind { get; set; } = MaterialKind.SoftwareCopyright;
+
     /// <summary>案例隔离目录（绝对路径，由服务端生成，客户端不可控）。</summary>
     public string DataDirectory { get; set; } = string.Empty;
 
@@ -324,6 +327,93 @@ public sealed class BackgroundJob
 
     /// <summary>下一次可执行时间（重试退避）。</summary>
     public DateTimeOffset? NextRunAt { get; set; }
+
+    public ApplicationCase? Case { get; set; }
+}
+
+/// <summary>技术交底书（专利撰写的单一真源）。</summary>
+public sealed class InventionDisclosure
+{
+    public Guid Id { get; set; }
+
+    public Guid CaseId { get; set; }
+
+    /// <summary>发明名称。</summary>
+    public string Title { get; set; } = string.Empty;
+
+    /// <summary>技术领域。</summary>
+    public string TechnicalField { get; set; } = string.Empty;
+
+    /// <summary>背景技术（现有技术描述）。</summary>
+    public string BackgroundTechnology { get; set; } = string.Empty;
+
+    /// <summary>要解决的技术问题。</summary>
+    public string ProblemStatement { get; set; } = string.Empty;
+
+    /// <summary>技术方案总述。</summary>
+    public string TechnicalSolution { get; set; } = string.Empty;
+
+    /// <summary>有益效果。</summary>
+    public string BeneficialEffects { get; set; } = string.Empty;
+
+    /// <summary>附图说明。</summary>
+    public string DrawingDescription { get; set; } = string.Empty;
+
+    /// <summary>现有技术（须由申请人填写并注明来源，系统不代为检索）。</summary>
+    public string PriorArt { get; set; } = string.Empty;
+
+    /// <summary>现有技术来源说明。</summary>
+    public string PriorArtSources { get; set; } = string.Empty;
+
+    /// <summary>摘要（生成后回填，限 300 字）。</summary>
+    public string Abstract { get; set; } = string.Empty;
+
+    /// <summary>术语表 JSON。</summary>
+    public string TerminologyJson { get; set; } = "[]";
+
+    /// <summary>技术特征（要素）JSON，含证据引用。</summary>
+    public string TechnicalFeaturesJson { get; set; } = "[]";
+
+    /// <summary>实施例 JSON，含证据引用。</summary>
+    public string EmbodimentsJson { get; set; } = "[]";
+
+    /// <summary>申请人。</summary>
+    public string ApplicantName { get; set; } = string.Empty;
+
+    /// <summary>发明人。</summary>
+    public string InventorNames { get; set; } = string.Empty;
+
+    public PatentType PatentType { get; set; } = PatentType.Invention;
+
+    public string RulesVersion { get; set; } = string.Empty;
+
+    public DateTimeOffset UpdatedAt { get; set; }
+
+    public ApplicationCase? Case { get; set; }
+}
+
+/// <summary>权利要求条目。</summary>
+public sealed class PatentClaim
+{
+    public Guid Id { get; set; }
+
+    public Guid CaseId { get; set; }
+
+    /// <summary>权利要求编号（从 1 开始连续）。</summary>
+    public int Number { get; set; }
+
+    public ClaimType Type { get; set; }
+
+    /// <summary>从属权利要求引用的母项编号。</summary>
+    public int? DependsOn { get; set; }
+
+    /// <summary>权利要求正文。</summary>
+    public string Text { get; set; } = string.Empty;
+
+    /// <summary>技术特征 JSON。</summary>
+    public string FeaturesJson { get; set; } = "[]";
+
+    public DateTimeOffset UpdatedAt { get; set; }
 
     public ApplicationCase? Case { get; set; }
 }

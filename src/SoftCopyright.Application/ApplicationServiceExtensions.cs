@@ -23,6 +23,8 @@ public static class ApplicationServiceExtensions
         services.AddScoped<ICaseScanWorkflow, ScanWorkflow>();
         services.AddScoped<ICaseAnalyzeWorkflow, AnalyzeWorkflow>();
         services.AddScoped<ICaseGenerationWorkflow, GenerationWorkflow>();
+        services.AddScoped<ICasePatentDraftWorkflow, PatentDraftWorkflow>();
+        services.AddScoped<IPatentService, PatentService>();
 
         return services;
     }

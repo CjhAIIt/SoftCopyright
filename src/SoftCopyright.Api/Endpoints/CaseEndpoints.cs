@@ -33,7 +33,7 @@ public static class CaseEndpoints
 
         group.MapPost("/", async (CreateCaseRequest request, ICaseService cases, CancellationToken ct) =>
         {
-            var entity = await cases.CreateAsync(request.Name, ct);
+            var entity = await cases.CreateAsync(request.Name, request.MaterialKind, ct);
             return Results.Created($"/api/cases/{entity.Id}", new CreateCaseResponse(entity.Id, entity.Name));
         });
 
@@ -236,33 +236,44 @@ public static class CaseEndpoints
                 return Results.NotFound(new { error = new { code = "not_found", message = "申请案例不存在。" } });
             }
 
-            // 生成材料前必须已通过申请信息与代码范围两道门禁。
+            // 生成材料前必须已通过相应门禁：软著走三道，专利只需确认草稿。
             var statuses = await confirmations.ListAsync(id, ct);
-            var applicantStatus = statuses.FirstOrDefault(s => s.Stage == ConfirmationStage.ApplicantInfo);
-            var codeStatus = statuses.FirstOrDefault(s => s.Stage == ConfirmationStage.CodeScope);
+            var isPatent = entity.MaterialKind == MaterialKind.Patent;
+
+            if (!isPatent)
+            {
+                var applicantStatus = statuses.FirstOrDefault(s => s.Stage == ConfirmationStage.ApplicantInfo);
+                var codeStatus = statuses.FirstOrDefault(s => s.Stage == ConfirmationStage.CodeScope);
+
+                if (applicantStatus is null || !applicantStatus.Confirmed || applicantStatus.IsStale)
+                {
+                    return Results.Conflict(new
+                    {
+                        error = new { code = "conflict", message = "请先填写并确认申请信息，再生成材料。" }
+                    });
+                }
+
+                if (codeStatus is null || !codeStatus.Confirmed || codeStatus.IsStale)
+                {
+                    return Results.Conflict(new
+                    {
+                        error = new { code = "conflict", message = "请先勾选源文件并确认代码范围，再生成材料。" }
+                    });
+                }
+            }
+
             var draftStatus = statuses.FirstOrDefault(s => s.Stage == ConfirmationStage.DocumentDraft);
-
-            if (applicantStatus is null || !applicantStatus.Confirmed || applicantStatus.IsStale)
-            {
-                return Results.Conflict(new
-                {
-                    error = new { code = "conflict", message = "请先填写并确认申请信息，再生成材料。" }
-                });
-            }
-
-            if (codeStatus is null || !codeStatus.Confirmed || codeStatus.IsStale)
-            {
-                return Results.Conflict(new
-                {
-                    error = new { code = "conflict", message = "请先勾选源文件并确认代码范围，再生成材料。" }
-                });
-            }
-
             if (draftStatus is null || !draftStatus.Confirmed || draftStatus.IsStale)
             {
                 return Results.Conflict(new
                 {
-                    error = new { code = "conflict", message = "请先审阅并确认文档草稿，再生成正式材料。" }
+                    error = new
+                    {
+                        code = "conflict",
+                        message = isPatent
+                            ? "请先审阅并确认专利草稿，再生成专利申请文件。"
+                            : "请先审阅并确认文档草稿，再生成正式材料。"
+                    }
                 });
             }
 
@@ -285,6 +296,45 @@ public static class CaseEndpoints
                 .OrderBy(a => a.CreatedAt)
                 .Select(a => Mapping.ToDto(a))
                 .ToList());
+        });
+
+        group.MapGet("/{id:guid}/patent/disclosure", async (Guid id, IPatentService patentService, CancellationToken ct) =>
+        {
+            var disclosure = await patentService.GetDisclosureAsync(id, ct);
+            var claims = await patentService.GetClaimsAsync(id, ct);
+            return Results.Ok(PatentService.ToDto(disclosure ?? new InventionDisclosure { CaseId = id }, claims));
+        });
+
+        group.MapPut("/{id:guid}/patent/disclosure", async (Guid id, PatentDisclosureUpdateRequest request, IPatentService patentService, CancellationToken ct) =>
+        {
+            var disclosure = await patentService.SaveDisclosureAsync(id, request, ct);
+            var claims = await patentService.GetClaimsAsync(id, ct);
+            return Results.Ok(PatentService.ToDto(disclosure, claims));
+        });
+
+        group.MapPost("/{id:guid}/patent/draft", async (Guid id, ICaseService cases, IBackgroundJobQueue queue, CancellationToken ct) =>
+        {
+            var entity = await cases.GetAsync(id, ct);
+            if (entity is null)
+            {
+                return Results.NotFound(new { error = new { code = "not_found", message = "申请案例不存在。" } });
+            }
+
+            if (entity.MaterialKind != MaterialKind.Patent)
+            {
+                return Results.Conflict(new { error = new { code = "conflict", message = "当前案例不是专利类型。" } });
+            }
+
+            var existing = await queue.ListByCaseAsync(id, ct);
+            var running = existing.FirstOrDefault(j =>
+                j.Type == JobType.PatentDraft && j.Status is JobStatus.Pending or JobStatus.Running);
+            if (running is not null)
+            {
+                return Results.Conflict(new { error = new { code = "conflict", message = "已有专利草稿任务在执行中。" }, jobId = running.Id });
+            }
+
+            var jobId = await queue.EnqueueAsync(id, JobType.PatentDraft, "{}", ct);
+            return Results.Accepted($"/api/cases/{id}/jobs", new { jobId });
         });
 
         group.MapGet("/{id:guid}/validation", async (Guid id, IValidationService service, CancellationToken ct) =>

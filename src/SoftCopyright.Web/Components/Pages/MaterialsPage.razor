@@ -121,7 +121,15 @@
     <ul class="small muted" style="margin:0;padding-left:20px;line-height:2">
         <li>本工具<strong>不生成 PDF</strong>：当前版本只产出 DOCX / TXT / JSON / HTML / ZIP 材料包，PDF 渲染尚未实现。</li>
         <li>本工具<strong>不做官方系统自动提交</strong>：请自行登录官方系统填报并完成签章。</li>
-        <li>代码鉴别材料只截取被确认的仓库真实源码，不做任何改写或补写。</li>
+        @if (_isPatent)
+        {
+            <li>专利材料是<strong>申请文件初稿</strong>：权利要求的保护范围、新颖性与创造性必须由专利代理人复核。</li>
+            <li>本工具<strong>不提供现有技术检索</strong>，也不编造对比文件；现有技术需由申请人填写并注明来源。</li>
+        }
+        else
+        {
+            <li>代码鉴别材料只截取被确认的仓库真实源码，不做任何改写或补写。</li>
+        }
         <li>校验报告只表示自动化规则检查结果，不构成法律意见，也不保证登记通过。</li>
     </ul>
 </div>
@@ -132,6 +140,7 @@
     private List<ValidationDto> _validation = [];
     private List<ArtifactDto> _artifacts = [];
     private bool _busy;
+    private bool _isPatent;
     private string? _error;
     private string? _message;
 
@@ -145,6 +154,8 @@
         _busy = true;
         try
         {
+            var detail = await Api.GetCaseAsync(CaseId, CancellationToken.None);
+            _isPatent = detail?.Summary.MaterialKind == MaterialKind.Patent;
             _validation = (await Api.GetValidationAsync(CaseId, CancellationToken.None)).ToList();
             _artifacts = (await Api.GetArtifactsAsync(CaseId, CancellationToken.None)).ToList();
             _error = null;

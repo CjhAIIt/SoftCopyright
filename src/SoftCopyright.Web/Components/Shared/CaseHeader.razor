@@ -26,6 +26,7 @@
                         来源仓库：@ShortCommit(_detail.Summary.SourceCommit)
                     </span>
                 }
+                <span class="badge badge-muted">@(_detail.Summary.MaterialKind == MaterialKind.Patent ? "专利申请" : "软著登记")</span>
             }
             <span class="spacer"></span>
             <a class="btn btn-sm" href="/">返回列表</a>
@@ -43,10 +44,10 @@
     }
 
     <div class="steps">
-        @for (var i = 0; i < _stages.Count; i++)
+        @for (var i = 0; i < Stages.Count; i++)
         {
             var index = i;
-            var text = _stages[index];
+            var text = Stages[index];
             var isCurrent = _detail is not null && _detail.StageNames.Count > index && _detail.StageNames[index] == _currentStageName;
             var isDone = _detail is not null && _detail.StageNames.Count > index && _stageOrder(_detail.StageNames[index]) < _stageOrder(_currentStageName);
             <div class="step @(isCurrent ? "current" : "") @(isDone ? "done" : "")">
@@ -83,8 +84,15 @@
     <div class="tabs">
         <a class="tab @(ActiveTab == "import" ? "active" : "")" href="/cases/@CaseId/import">导入仓库</a>
         <a class="tab @(ActiveTab == "analysis" ? "active" : "")" href="/cases/@CaseId/analysis">分析与证据</a>
-        <a class="tab @(ActiveTab == "applicant" ? "active" : "")" href="/cases/@CaseId/applicant">申请信息</a>
-        <a class="tab @(ActiveTab == "code" ? "active" : "")" href="/cases/@CaseId/code">代码材料</a>
+        @if (IsPatent)
+        {
+            <a class="tab @(ActiveTab == "patent" ? "active" : "")" href="/cases/@CaseId/patent">专利交底书</a>
+        }
+        else
+        {
+            <a class="tab @(ActiveTab == "applicant" ? "active" : "")" href="/cases/@CaseId/applicant">申请信息</a>
+            <a class="tab @(ActiveTab == "code" ? "active" : "")" href="/cases/@CaseId/code">代码材料</a>
+        }
         <a class="tab @(ActiveTab == "materials" ? "active" : "")" href="/cases/@CaseId/materials">材料与导出</a>
     </div>
 </div>
@@ -104,6 +112,14 @@
     [
         "创建", "上传", "扫描", "分析完成", "申请信息", "代码范围", "草稿就绪", "材料审核", "校验", "材料包", "归档"
     ];
+
+    // 专利案例不提交软件鉴别材料，阶段名改为交底书与权利要求。
+    private static readonly List<string> _patentStages =
+    [
+        "创建", "上传", "扫描", "分析完成", "交底书", "权利要求", "草稿就绪", "材料审核", "校验", "材料包", "归档"
+    ];
+
+    private IReadOnlyList<string> Stages => IsPatent ? _patentStages : _stages;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -169,6 +185,8 @@
 
     private static string ShortCommit(string? commit) =>
         string.IsNullOrWhiteSpace(commit) ? "已导入" : commit.Length <= 8 ? commit : commit[..8];
+
+    private bool IsPatent => _detail?.Summary.MaterialKind == MaterialKind.Patent;
 
     public void Dispose()
     {

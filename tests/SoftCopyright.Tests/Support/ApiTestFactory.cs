@@ -9,8 +9,10 @@ namespace SoftCopyright.Tests.Support;
 
 /// <summary>
 /// 集成测试用宿主。
+///
 /// 默认使用 MySQL（读取环境变量 SOFTCOPYRIGHT_TEST_MYSQL 或 SOFTCOPYRIGHT_MYSQL），
-/// 每个宿主实例使用**独立的测试库**，避免多个宿主的后台 Worker 互相认领任务；
+/// 并为**每个宿主实例分配独立的测试库**：多个测试类并行执行时各自迁移自己的库，
+/// 避免并发建表互相冲突。
 /// 未配置 MySQL 连接信息时回退到 SQLite 临时库，保证离线环境仍可运行测试。
 /// </summary>
 public sealed class ApiTestFactory : WebApplicationFactory<Program>
@@ -31,11 +33,8 @@ public sealed class ApiTestFactory : WebApplicationFactory<Program>
     /// <summary>实际使用的数据库提供程序。</summary>
     public string Provider { get; private set; } = "Sqlite";
 
-    /// <summary>本次测试使用的 MySQL 连接字符串（未使用 MySQL 时为 null）。</summary>
-    public string? MySqlConnectionString { get; private set; }
-
-    /// <summary>显式指定 MySQL 连接串（用于模拟重启后复用同一份数据），指定后不再创建独立测试库。</summary>
-    public string? MySqlConnectionStringOverride { get; set; }
+    /// <summary>本次测试使用的 MySQL 连接字符串（未使用 MySQL 时为 null）。可赋值以复用同一数据库。</summary>
+    public string? MySqlConnectionString { get; set; }
 
     private string? _testDatabaseName;
 
@@ -94,11 +93,9 @@ public sealed class ApiTestFactory : WebApplicationFactory<Program>
     /// <summary>生成当前宿主专用的测试库连接串。</summary>
     private string? ResolveBaseMySqlConnection()
     {
-        if (!string.IsNullOrWhiteSpace(MySqlConnectionStringOverride))
+        if (!string.IsNullOrWhiteSpace(MySqlConnectionString))
         {
-            MySqlConnectionString = MySqlConnectionStringOverride;
-            _testDatabaseName = null;
-            return MySqlConnectionStringOverride;
+            return MySqlConnectionString;
         }
 
         var raw = Environment.GetEnvironmentVariable("SOFTCOPYRIGHT_TEST_MYSQL")
@@ -111,7 +108,9 @@ public sealed class ApiTestFactory : WebApplicationFactory<Program>
 
         var builder = new MySqlConnectionStringBuilder(raw);
         var baseName = string.IsNullOrWhiteSpace(builder.Database) ? "softcopyright_test" : builder.Database;
-        _testDatabaseName = $"{baseName}_{Guid.NewGuid():N}"[..40];
+
+        // 每个宿主实例一个独立库，避免并行测试互相迁移冲突。
+        _testDatabaseName = $"{baseName}_{Guid.NewGuid():N}"[..48];
         builder.Database = _testDatabaseName;
         return builder.ConnectionString;
     }

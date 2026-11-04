@@ -13,6 +13,8 @@ public sealed class ConfirmationService(
     IRepository<ConfirmationRecord> confirmations,
     IRepository<ApplicationCase> cases,
     IRepository<ProjectAnalysis> analyses,
+    IRepository<InventionDisclosure> disclosures,
+    IRepository<PatentClaim> patentClaims,
     IRepository<ApplicantInfo> applicantInfos,
     IRepository<CodeSelection> selections,
     IRepository<CodeSelectionItem> selectionItems,
@@ -266,7 +268,27 @@ public sealed class ConfirmationService(
 
             case ConfirmationStage.DocumentDraft:
             {
-                // 草稿确认依赖前序三道门禁已经通过且未失效。
+                var patentCase = await cases.FindAsync(caseId, ct);
+
+                // 专利案例的"草稿"由技术交底书派生，不走软著的申请信息与代码范围门禁。
+                if (patentCase?.MaterialKind == MaterialKind.Patent)
+                {
+                    var disclosure = (await disclosures.ListAsync(d => d.CaseId == caseId, ct)).FirstOrDefault();
+                    if (disclosure is null || string.IsNullOrWhiteSpace(disclosure.TechnicalSolution))
+                    {
+                        throw new ConflictException("请先填写技术交底书，再确认草稿。");
+                    }
+
+                    var generatedClaims = await patentClaims.ListAsync(c => c.CaseId == caseId, ct);
+                    if (generatedClaims.Count == 0)
+                    {
+                        throw new ConflictException("请先生成专利草稿（权利要求），再确认草稿。");
+                    }
+
+                    return;
+                }
+
+                // 软著案例：草稿确认依赖前序三道门禁已经通过且未失效。
                 var records = await confirmations.ListAsync(c => c.CaseId == caseId, ct);
                 foreach (var required in new[]
                          {
@@ -322,7 +344,7 @@ public sealed class ConfirmationService(
             _ => caseEntity.Stage
         };
 
-        if (!workflow.CanTransition(caseEntity.Stage, target))
+        if (!workflow.CanTransition(caseEntity.Stage, target, caseEntity.MaterialKind))
         {
             // 已经是目标阶段或处于可恢复的失败状态时，不强行迁移。
             if (caseEntity.Stage != target)

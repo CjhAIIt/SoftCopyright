@@ -9,7 +9,11 @@
         <div class="sub">导入真实代码仓库，生成可核对、可追溯的软件著作权申请材料。</div>
     </div>
     <div class="actions">
-        <input type="text" placeholder="新案例名称（可留空）" @bind="_newName" style="width:220px" />
+        <select @bind="_materialKind" style="width:150px">
+            <option value="SoftwareCopyright">软著登记</option>
+            <option value="Patent">专利申请</option>
+        </select>
+        <input type="text" placeholder="新案例名称（可留空）" @bind="_newName" style="width:200px" />
         <button class="btn btn-primary" disabled="@_busy" @onclick="CreateAsync">新建案例</button>
     </div>
 </div>
@@ -49,7 +53,10 @@
             {
                 <tr>
                     <td><a href="/cases/@item.Id/import">@item.Name</a></td>
-                    <td>@(item.SoftwareFullName ?? "未命名项目")</td>
+                    <td>
+                        @item.SoftwareFullName
+                        <div class="small"><span class="badge badge-muted">@(item.MaterialKind == MaterialKind.Patent ? "专利申请" : "软著登记")</span></div>
+                    </td>
                     <td><span class="badge @(StageBadge(item.Stage))">@item.StageText</span></td>
                     <td class="small muted">@item.StatusMessage</td>
                     <td class="small">@item.ConfirmedCount / @item.TotalConfirmations</td>
@@ -84,6 +91,7 @@
     private bool _busy;
     private string? _error;
     private string? _newName;
+    private MaterialKind _materialKind = MaterialKind.SoftwareCopyright;
     private CaseSummaryDto? _pendingDelete;
 
     protected override async Task OnInitializedAsync()
@@ -114,7 +122,7 @@
         _busy = true;
         try
         {
-            var created = await Api.CreateCaseAsync(_newName, CancellationToken.None);
+            var created = await Api.CreateCaseAsync(_newName, _materialKind, CancellationToken.None);
             Nav.NavigateTo($"/cases/{created.Id}/import");
         }
         catch (Exception ex)

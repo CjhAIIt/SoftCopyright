@@ -63,6 +63,14 @@ public sealed class EvidencePackBuilder(IOptions<AiOptions> options) : IEvidence
                 startLine = 1;
                 endLine = head.Length;
             }
+            else if (!string.IsNullOrWhiteSpace(evidence.Excerpt))
+            {
+                // 文档与配置类证据直接使用扫描时提取的精确片段。
+                // 若改用整份文件内容，README 全文会被当成技术特征写进申请文件，既失真也浪费额度。
+                payload = evidence.Excerpt.Length > opts.MaxItemBytes
+                    ? evidence.Excerpt[..opts.MaxItemBytes]
+                    : evidence.Excerpt;
+            }
             else
             {
                 payload = content.Length > opts.MaxItemBytes ? content[..opts.MaxItemBytes] : content;

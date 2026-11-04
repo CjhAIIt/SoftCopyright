@@ -112,6 +112,39 @@ public sealed record ApplicantInfoSnapshot(
     string DevelopmentEnvironment,
     string RuntimeEnvironment);
 
+/// <summary>技术特征（专利技术方案要素），必须绑定证据或标记为待补充。</summary>
+public sealed record TechnicalFeature(
+    string Title,
+    string Description,
+    IReadOnlyList<EvidenceRef> Evidence,
+    bool Confirmed);
+
+/// <summary>实施例。</summary>
+public sealed record Embodiment(
+    string Title,
+    string Description,
+    IReadOnlyList<EvidenceRef> Evidence,
+    bool Confirmed);
+
+/// <summary>术语表条目。</summary>
+public sealed record TerminologyEntry(string Term, string Definition);
+
+/// <summary>权利要求草案。</summary>
+public sealed record PatentClaimDraft(
+    int Number,
+    ClaimType Type,
+    int? DependsOn,
+    string Text,
+    IReadOnlyList<TechnicalFeature> Features);
+
+/// <summary>专利草稿生成结果。</summary>
+public sealed record PatentDraftResult(
+    string Abstract,
+    IReadOnlyList<TechnicalFeature> Features,
+    IReadOnlyList<Embodiment> Embodiments,
+    IReadOnlyList<PatentClaimDraft> Claims,
+    IReadOnlyList<string> Warnings);
+
 /// <summary>证据包条目：发送给模型前已脱敏、截断并标注哈希。</summary>
 public sealed record EvidencePackItem(
     string RelativePath,

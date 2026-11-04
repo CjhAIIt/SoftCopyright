@@ -28,6 +28,19 @@ public interface ICaseGenerationWorkflow
     Task<GenerationSummary> GenerateAsync(Guid caseId, Func<ScanProgress, Task>? progress, CancellationToken ct);
 }
 
+/// <summary>专利草稿生成编排。</summary>
+public interface ICasePatentDraftWorkflow
+{
+    Task<PatentDraftSummary> DraftAsync(Guid caseId, Func<ScanProgress, Task>? progress, CancellationToken ct);
+}
+
+/// <summary>专利草稿摘要。</summary>
+public sealed record PatentDraftSummary(
+    int FeatureCount,
+    int ClaimCount,
+    int EmbodimentCount,
+    IReadOnlyList<string> Warnings);
+
 /// <summary>上传摘要。</summary>
 public sealed record UploadSummary(
     string FileName,

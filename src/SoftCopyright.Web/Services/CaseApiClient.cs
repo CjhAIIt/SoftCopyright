@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using SoftCopyright.Application.Api;
 using SoftCopyright.Application.Dtos;
+using SoftCopyright.Domain;
 using SoftCopyright.Domain.Contracts;
 
 namespace SoftCopyright.Web.Services;
@@ -24,6 +25,36 @@ public sealed class CaseApiClient(HttpClient http) : ICaseApiClient
         var response = await http.PostAsJsonAsync("/api/cases", new CreateCaseRequest(name), Options, ct);
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<CreateCaseResponse>(Options, ct))!;
+    }
+
+    public async Task<CreateCaseResponse> CreateCaseAsync(string? name, MaterialKind materialKind, CancellationToken ct)
+    {
+        var response = await http.PostAsJsonAsync("/api/cases", new CreateCaseRequest(name, materialKind), Options, ct);
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<CreateCaseResponse>(Options, ct))!;
+    }
+
+    public async Task<PatentDisclosureDto> GetPatentDisclosureAsync(Guid id, CancellationToken ct)
+    {
+        var response = await http.GetAsync($"/api/cases/{id}/patent/disclosure", ct);
+        await EnsureSuccessAsync(response, ct);
+        return (await response.Content.ReadFromJsonAsync<PatentDisclosureDto>(Options, ct))!;
+    }
+
+    public async Task<PatentDisclosureDto> SavePatentDisclosureAsync(Guid id, PatentDisclosureUpdateRequest request, CancellationToken ct)
+    {
+        var response = await http.PutAsJsonAsync($"/api/cases/{id}/patent/disclosure", request, Options, ct);
+        await EnsureSuccessAsync(response, ct);
+        return (await response.Content.ReadFromJsonAsync<PatentDisclosureDto>(Options, ct))!;
+    }
+
+    public async Task<JobDto> TriggerPatentDraftAsync(Guid id, CancellationToken ct)
+    {
+        var response = await http.PostAsync($"/api/cases/{id}/patent/draft", null, ct);
+        await EnsureSuccessAsync(response, ct);
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
+        var jobId = document.RootElement.GetProperty("jobId").GetGuid();
+        return new JobDto(jobId, Domain.JobType.PatentDraft, "专利草稿", Domain.JobStatus.Pending, "等待中", 0, "已排队", null, 0, 3, DateTimeOffset.Now, null);
     }
 
     public async Task<CaseDetailDto> GetCaseAsync(Guid id, CancellationToken ct) =>

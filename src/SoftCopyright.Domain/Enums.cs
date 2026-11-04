@@ -43,12 +43,43 @@ public enum ConfirmationStage
     FinalPackage
 }
 
+/// <summary>申请材料类型。</summary>
+public enum MaterialKind
+{
+    /// <summary>软件著作权登记材料。</summary>
+    SoftwareCopyright,
+
+    /// <summary>专利申请文件（发明 / 实用新型）。</summary>
+    Patent
+}
+
+/// <summary>专利类型。</summary>
+public enum PatentType
+{
+    /// <summary>发明专利。</summary>
+    Invention,
+
+    /// <summary>实用新型。</summary>
+    UtilityModel
+}
+
+/// <summary>权利要求类型。</summary>
+public enum ClaimType
+{
+    /// <summary>独立权利要求。</summary>
+    Independent,
+
+    /// <summary>从属权利要求。</summary>
+    Dependent
+}
+
 /// <summary>后台任务类型。</summary>
 public enum JobType
 {
     Scan,
     Analyze,
-    Generate
+    Generate,
+    PatentDraft
 }
 
 /// <summary>后台任务状态。</summary>
@@ -72,7 +103,11 @@ public enum ArtifactKind
     ApplicantInfoDraft,
     ValidationReport,
     Manifest,
-    Package
+    Package,
+    PatentClaims,
+    PatentSpecification,
+    PatentAbstract,
+    PatentDisclosure
 }
 
 /// <summary>校验结论级别。</summary>

@@ -102,7 +102,7 @@ public sealed class SecurityTests(ApiTestFactory factory) : IClassFixture<ApiTes
         using var restarted = new ApiTestFactory
         {
             DataRoot = factory.DataRoot,
-            MySqlConnectionStringOverride = factory.MySqlConnectionString,
+            MySqlConnectionString = factory.MySqlConnectionString,
             PreserveDataOnDispose = true
         };
 

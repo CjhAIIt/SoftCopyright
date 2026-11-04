@@ -24,7 +24,10 @@ public sealed class CaseService(
         return entity is null || entity.IsDeleted ? null : entity;
     }
 
-    public async Task<ApplicationCase> CreateAsync(string? name, CancellationToken ct)
+    public async Task<ApplicationCase> CreateAsync(string? name, CancellationToken ct) =>
+        await CreateAsync(name, MaterialKind.SoftwareCopyright, ct);
+
+    public async Task<ApplicationCase> CreateAsync(string? name, MaterialKind materialKind, CancellationToken ct)
     {
         var id = Guid.NewGuid();
         var now = DateTimeOffset.UtcNow;
@@ -33,11 +36,14 @@ public sealed class CaseService(
         {
             Id = id,
             Name = string.IsNullOrWhiteSpace(name) ? "未命名项目" : name.Trim(),
+            MaterialKind = materialKind,
             Stage = CaseStage.Created,
             StageUpdatedAt = now,
             CreatedAt = now,
             UpdatedAt = now,
-            StatusMessage = "案例已创建，等待上传代码仓库压缩包。",
+            StatusMessage = materialKind == MaterialKind.Patent
+                ? "案例已创建，等待导入代码仓库并填写技术交底书。"
+                : "案例已创建，等待导入代码仓库压缩包。",
             DataDirectory = fileStore.GetCaseDirectory(id)
         };
 
@@ -100,6 +106,7 @@ public sealed class CaseService(
             confirmed.Count(c => c.InvalidatedAt is null),
             5,
             entity.SourceRepositoryUrl,
-            entity.SourceCommit);
+            entity.SourceCommit,
+            entity.MaterialKind);
     }
 }

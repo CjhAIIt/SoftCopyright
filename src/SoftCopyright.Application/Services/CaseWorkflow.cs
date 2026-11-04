@@ -47,6 +47,23 @@ public sealed class CaseWorkflow : ICaseWorkflow
     public bool CanTransition(CaseStage from, CaseStage to) =>
         Allowed.TryGetValue(from, out var targets) && targets.Contains(to);
 
+    /// <summary>
+    /// 按材料类型判断迁移是否合法。
+    /// 专利案例没有"代码范围"这一步：权利要求生成后直接进入材料审核，
+    /// 因此额外允许「代码范围 → 材料审核」这条边（专利路径复用同一批阶段槽位）。
+    /// </summary>
+    public bool CanTransition(CaseStage from, CaseStage to, MaterialKind materialKind)
+    {
+        if (CanTransition(from, to))
+        {
+            return true;
+        }
+
+        return materialKind == MaterialKind.Patent
+               && from == CaseStage.CodeSelectionPending
+               && to == CaseStage.ReviewPending;
+    }
+
     public IReadOnlyList<CaseStage> AllowedTransitions(CaseStage from) =>
         Allowed.TryGetValue(from, out var targets) ? targets : [];
 }

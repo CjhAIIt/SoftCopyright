@@ -84,6 +84,13 @@ public sealed class BackgroundJobWorker(
                     break;
                 }
 
+                case JobType.PatentDraft:
+                {
+                    var patent = services.GetRequiredService<ICasePatentDraftWorkflow>();
+                    await patent.DraftAsync(job.CaseId, p => ReportProgress(queue, job.Id, p.Percent, p.Message, ct), ct);
+                    break;
+                }
+
                 default:
                     throw new InvalidOperationException($"不支持的任务类型：{job.Type}");
             }
@@ -130,8 +137,34 @@ public sealed class BackgroundJobWorker(
                     j.LeaseUntil = null;
                 }, ct);
 
+                await RecordFailureAsync(services, job.CaseId, message, ct);
                 logger.LogError(ex, "后台任务 {JobId} 已超过最大重试次数，标记为失败", job.Id);
             }
+        }
+    }
+
+    /// <summary>把最终失败原因回写到案例，便于工作台直接显示。</summary>
+    private static async Task RecordFailureAsync(IServiceProvider services, Guid caseId, string message, CancellationToken ct)
+    {
+        try
+        {
+            var cases = services.GetRequiredService<IRepository<ApplicationCase>>();
+            var caseEntity = await cases.FindAsync(caseId, ct);
+            if (caseEntity is null)
+            {
+                return;
+            }
+
+            caseEntity.FailureReason = message.Length > 2000 ? message[..2000] : message;
+            caseEntity.StatusMessage = "最近一次后台任务失败，请查看失败原因后重试。";
+            caseEntity.UpdatedAt = DateTimeOffset.UtcNow;
+            await cases.SaveChangesAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            // 回写失败不能影响任务本身的状态记录。
+            services.GetRequiredService<ILogger<BackgroundJobWorker>>()
+                .LogWarning(ex, "回写案例 {CaseId} 的失败原因时出错", caseId);
         }
     }
 

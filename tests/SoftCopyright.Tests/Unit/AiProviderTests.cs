@@ -135,6 +135,35 @@ public sealed class AiProviderTests
     }
 
     [Fact]
+    public async Task 文档类证据使用精确摘录而不是整份文件()
+    {
+        using var temp = new TestTempDirectory();
+        var root = temp.Path;
+
+        // README 正文很长，但证据只指向标题行。
+        await File.WriteAllTextAsync(Path.Combine(root, "README.md"), "# 标题\n" + new string('甲', 500) + "\n");
+
+        var reader = new LocalProjectFileReader(root);
+        var files = new List<ProjectFileEntry>
+        {
+            new("README.md", 10, "sha-readme", true, "utf-8", "文本", FileCategory.Doc, false, null, 2, SecretRisk.None, false)
+        };
+
+        var evidences = new List<EvidenceEntry>
+        {
+            new("README.md", 1, 1, "README 标题", "sha-readme", "# 标题", EvidenceSource.Scanner)
+        };
+
+        var options = Options.Create(new AiOptions { MaxEvidenceItems = 10, MaxEvidenceBytes = 4096, MaxItemBytes = 1024 });
+        var builder = new EvidencePackBuilder(options);
+
+        var pack = await builder.BuildAsync(files, evidences, reader, CancellationToken.None);
+
+        // 整份文档会被当成技术特征写进申请文件，这里必须只保留精确摘录。
+        Assert.Equal("# 标题", pack.Items.Single().Content);
+    }
+
+    [Fact]
     public async Task 规则分析器不会编造代码内容()
     {
         var pack = CreatePack(new EvidencePackItem("README.md", "功能条目", "abc", "用户管理", 3, 3));

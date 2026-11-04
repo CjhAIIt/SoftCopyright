@@ -15,8 +15,11 @@ public sealed class GenerationWorkflow(
     IRepository<CodeSelectionItem> selectionItems,
     IRepository<ProjectAnalysis> analyses,
     IRepository<GeneratedArtifact> artifacts,
+    IRepository<InventionDisclosure> disclosures,
+    IRepository<PatentClaim> patentClaims,
     IValidationService validationService,
     IMaterialDocumentGenerator documentGenerator,
+    IPatentDocumentGenerator patentDocumentGenerator,
     IMaterialPackageBuilder packageBuilder,
     IFileStore fileStore,
     IProjectFileReaderFactory readerFactory,
@@ -35,28 +38,43 @@ public sealed class GenerationWorkflow(
         }
 
         var info = (await applicantInfos.ListAsync(a => a.CaseId == caseId, ct)).FirstOrDefault();
-        if (info is null || string.IsNullOrWhiteSpace(info.SoftwareFullName))
+        var isPatent = caseEntity.MaterialKind == MaterialKind.Patent;
+
+        if (isPatent)
+        {
+            var disclosure = (await disclosures.ListAsync(d => d.CaseId == caseId, ct)).FirstOrDefault();
+            if (disclosure is null || string.IsNullOrWhiteSpace(disclosure.TechnicalSolution))
+            {
+                throw new ConflictException("请先填写并确认技术交底书，再生成专利申请文件。");
+            }
+        }
+        else if (info is null || string.IsNullOrWhiteSpace(info.SoftwareFullName))
         {
             throw new ConflictException("请先填写并确认申请信息，再生成材料。");
         }
 
-        var selection = (await selections.ListAsync(s => s.CaseId == caseId, ct)).FirstOrDefault();
-        if (selection is null)
+        var items = new List<CodeSelectionItem>();
+        if (!isPatent)
         {
-            throw new ConflictException("请先确认代码范围，再生成材料。");
+            // 软著材料包需要提交代码鉴别材料，必须先确认代码范围。
+            var selection = (await selections.ListAsync(s => s.CaseId == caseId, ct)).FirstOrDefault();
+            if (selection is null)
+            {
+                throw new ConflictException("请先确认代码范围，再生成材料。");
+            }
+
+            items = (await selectionItems.ListAsync(i => i.SelectionId == selection.Id, ct))
+                .Where(i => i.Included)
+                .OrderBy(i => i.RelativePath, StringComparer.Ordinal)
+                .ToList();
+
+            if (items.Count == 0)
+            {
+                throw new ConflictException("尚未勾选任何源文件，无法生成代码鉴别材料。");
+            }
         }
 
-        var items = (await selectionItems.ListAsync(i => i.SelectionId == selection.Id, ct))
-            .Where(i => i.Included)
-            .OrderBy(i => i.RelativePath, StringComparer.Ordinal)
-            .ToList();
-
-        if (items.Count == 0)
-        {
-            throw new ConflictException("尚未勾选任何源文件，无法生成代码鉴别材料。");
-        }
-
-        await ReportAsync(progress, 15, "正在从真实源码抽取代码……");
+        await ReportAsync(progress, 15, isPatent ? "正在整理专利申请文件内容……" : "正在从真实源码抽取代码……");
 
         var blocks = await BuildCodeBlocksAsync(caseId, items, ct);
 
@@ -72,20 +90,20 @@ public sealed class GenerationWorkflow(
 
         var request = new MaterialGenerationRequest(
             caseId,
-            info.SoftwareFullName,
-            info.VersionNumber,
-            profile.Purpose.Value ?? info.FunctionSummary,
-            info.FunctionSummary,
-            info.CopyrightOwner,
-            info.DevelopmentMode,
-            info.RightsAcquisitionMethod,
-            info.CompletionDate,
-            info.FirstPublicationStatus,
-            info.FirstPublicationDate,
-            info.DevelopmentEnvironment,
-            info.RuntimeEnvironment,
-            info.ProgrammingLanguages,
-            info.SourceProgramAmount,
+            info?.SoftwareFullName ?? caseEntity.Name,
+            info?.VersionNumber ?? string.Empty,
+            profile.Purpose.Value ?? info?.FunctionSummary ?? string.Empty,
+            info?.FunctionSummary ?? string.Empty,
+            info?.CopyrightOwner ?? string.Empty,
+            info?.DevelopmentMode ?? string.Empty,
+            info?.RightsAcquisitionMethod ?? string.Empty,
+            info?.CompletionDate,
+            info?.FirstPublicationStatus ?? string.Empty,
+            info?.FirstPublicationDate,
+            info?.DevelopmentEnvironment ?? string.Empty,
+            info?.RuntimeEnvironment ?? string.Empty,
+            info?.ProgrammingLanguages ?? string.Empty,
+            info?.SourceProgramAmount ?? string.Empty,
             profile.Features,
             profile.DetectedTechnologies,
             profile.DetectedEntrypoints,
@@ -96,7 +114,19 @@ public sealed class GenerationWorkflow(
             _rules.Source,
             DateTimeOffset.UtcNow);
 
-        var documents = await documentGenerator.GenerateAsync(request, ct);
+        var documents = isPatent
+            ? await patentDocumentGenerator.GenerateAsync(
+                new PatentDocumentRequest(
+                    (await disclosures.ListAsync(d => d.CaseId == caseId, ct)).FirstOrDefault()?.Title ?? caseEntity.Name,
+                    info?.VersionNumber ?? string.Empty,
+                    (await disclosures.ListAsync(d => d.CaseId == caseId, ct)).FirstOrDefault()!,
+                    (await patentClaims.ListAsync(c => c.CaseId == caseId, ct)).OrderBy(c => c.Number).ToList(),
+                    validationResults,
+                    _rules.Version,
+                    _rules.Source,
+                    DateTimeOffset.UtcNow),
+                ct)
+            : await documentGenerator.GenerateAsync(request, ct);
 
         await ReportAsync(progress, 80, "正在保存材料产物……");
 
@@ -129,7 +159,7 @@ public sealed class GenerationWorkflow(
             Id = Guid.NewGuid(),
             CaseId = caseId,
             Kind = ArtifactKind.Package,
-            FileName = "软著申请材料包.zip",
+            FileName = isPatent ? "专利申请材料包.zip" : "软著申请材料包.zip",
             SizeBytes = packageBytes.Length,
             Sha256 = Hashing.OfBytes(packageBytes),
             ContentType = "application/zip",
@@ -138,13 +168,20 @@ public sealed class GenerationWorkflow(
         };
 
         packageArtifact.RelativePath = await fileStore.SaveArtifactAsync(
-            caseId, packageArtifact.Id, "材料包/软著申请材料包.zip", packageBytes, ct);
+            caseId,
+            packageArtifact.Id,
+            isPatent ? "材料包/专利申请材料包.zip" : "材料包/软著申请材料包.zip",
+            packageBytes,
+            ct);
 
         await artifacts.AddAsync(packageArtifact, ct);
         await artifacts.SaveChangesAsync(ct);
 
-        caseEntity.SoftwareFullName = info.SoftwareFullName;
-        caseEntity.SoftwareVersion = info.VersionNumber;
+        if (!isPatent)
+        {
+            caseEntity.SoftwareFullName = info?.SoftwareFullName;
+            caseEntity.SoftwareVersion = info?.VersionNumber;
+        }
         caseEntity.RulesVersion = _rules.Version;
         caseEntity.FailureReason = null;
         caseEntity.UpdatedAt = DateTimeOffset.UtcNow;
@@ -258,6 +295,10 @@ public sealed class GenerationWorkflow(
         var p when p.EndsWith("证据清单.json", StringComparison.Ordinal) => ArtifactKind.EvidenceManifest,
         var p when p.EndsWith("申请信息草稿.json", StringComparison.Ordinal) => ArtifactKind.ApplicantInfoDraft,
         var p when p.EndsWith("校验报告.html", StringComparison.Ordinal) => ArtifactKind.ValidationReport,
+        var p when p.EndsWith("权利要求书.docx", StringComparison.Ordinal) => ArtifactKind.PatentClaims,
+        var p when p.EndsWith("说明书.docx", StringComparison.Ordinal) => ArtifactKind.PatentSpecification,
+        var p when p.EndsWith("摘要.docx", StringComparison.Ordinal) => ArtifactKind.PatentAbstract,
+        var p when p.EndsWith("技术交底书.docx", StringComparison.Ordinal) => ArtifactKind.PatentDisclosure,
         _ => ArtifactKind.Manifest
     };
 

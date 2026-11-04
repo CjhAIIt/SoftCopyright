@@ -21,6 +21,9 @@ public interface ICaseWorkflow
 {
     bool CanTransition(CaseStage from, CaseStage to);
 
+    /// <summary>按材料类型判断迁移是否合法：软著与专利走不同的前置门禁，允许的迁移也不同。</summary>
+    bool CanTransition(CaseStage from, CaseStage to, MaterialKind materialKind);
+
     IReadOnlyList<CaseStage> AllowedTransitions(CaseStage from);
 
     /// <summary>按顺序排列的主流程阶段，用于进度展示。</summary>
@@ -78,6 +81,8 @@ public interface ICaseService
     Task<ApplicationCase?> GetAsync(Guid id, CancellationToken ct);
 
     Task<ApplicationCase> CreateAsync(string? name, CancellationToken ct);
+
+    Task<ApplicationCase> CreateAsync(string? name, MaterialKind materialKind, CancellationToken ct);
 
     Task<bool> DeleteAsync(Guid id, CancellationToken ct);
 }
