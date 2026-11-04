@@ -31,12 +31,14 @@ builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
 });
 
-var apiBaseAddress = builder.Configuration["App:ApiBaseAddress"] ?? "http://localhost:5080";
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddTransient<SoftCopyright.Api.Infrastructure.SelfBaseAddressHandler>();
 builder.Services.AddHttpClient<ICaseApiClient, CaseApiClient>(client =>
 {
-    client.BaseAddress = new Uri(apiBaseAddress);
+    // 使用相对地址，由 SelfBaseAddressHandler 按当前请求来源补全。
+    client.BaseAddress = new Uri("http://localhost");
     client.Timeout = TimeSpan.FromMinutes(2);
-});
+}).AddHttpMessageHandler<SoftCopyright.Api.Infrastructure.SelfBaseAddressHandler>();
 
 var app = builder.Build();
 
@@ -94,6 +96,9 @@ app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
 app.MapHealthChecks("/health");
 app.MapSoftCopyrightApi();
 app.MapArtifactEndpoints();
+
+// 必须提供静态资源：blazor.web.js 缺失会导致页面只做 SSR 渲染、交互全部失效。
+app.MapStaticAssets();
 
 // Blazor Web App 的表单与交互需要防伪中间件。
 app.UseAntiforgery();

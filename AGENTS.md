@@ -40,6 +40,20 @@ dotnet build     # 必须 0 error / 0 warning
 dotnet test      # 必须全绿
 ```
 
+## 已知坑：Blazor 组件在独立类库时
+
+`SoftCopyright.Web` 是 Razor 类库（`Microsoft.NET.Sdk.Razor`），Blazor 组件放在其中时 **SDK 不会自动引入框架静态资源包**，会导致 `/_framework/blazor.web.js` 返回 404 —— 页面仍能服务端渲染出样子，但**所有按钮无响应**（最难排查的一类问题）。
+
+宿主项目 `SoftCopyright.Api` 必须显式引用：
+
+```xml
+<PackageReference Include="Microsoft.AspNetCore.App.Internal.Assets" />
+```
+
+并在 `Program.cs` 中注册 `app.MapStaticAssets();`（顺序：`MapStaticAssets` → `UseAntiforgery` → `MapRazorComponents<App>().AddInteractiveServerRenderMode()`）。
+
+`tests/SoftCopyright.Tests/Integration/UiAssetTests.cs` 已把该前置条件固化为回归测试，**不要删除或跳过它**。
+
 ## 当前未实现（不要假装存在）
 
 - PDF 渲染（MVP 不产出 PDF，材料包只含 DOCX/TXT/JSON/HTML/ZIP）

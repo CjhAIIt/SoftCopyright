@@ -14,4 +14,13 @@
     <ProjectReference Include="..\SoftCopyright.Web\SoftCopyright.Web.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!--
+      框架静态资源包：提供 _framework/blazor.web.js。
+      Blazor 组件位于独立的 Razor 类库时，SDK 不会自动引入该包，
+      缺失会导致页面只做服务端渲染、交互全部失效（按钮无响应）。
+    -->
+    <PackageReference Include="Microsoft.AspNetCore.App.Internal.Assets" />
+  </ItemGroup>
+
 </Project>

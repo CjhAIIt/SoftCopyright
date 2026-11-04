@@ -2,16 +2,29 @@
 @implements IDisposable
 
 <div class="card">
-    <div class="row">
-        <strong>@(_detail?.Summary.Name ?? "加载中…")</strong>
-        @if (_detail is not null)
-        {
-            <span class="badge badge-info">@_detail.Summary.StageText</span>
-            <span class="muted small">规则版本 @_detail.RulesVersion ｜ 分析器 @_detail.AnalyzerVersion</span>
-        }
-        <span class="spacer"></span>
-        <a class="btn btn-sm" href="/">返回列表</a>
-    </div>
+    @if (_error is not null)
+    {
+        <div class="alert alert-danger">
+            @_error
+            <a class="btn btn-sm" href="/">返回列表</a>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            <strong>@(_detail?.Summary.Name ?? "加载中…")</strong>
+            @if (_detail is not null)
+            {
+                <span class="badge badge-info">@_detail.Summary.StageText</span>
+                @if (!string.IsNullOrWhiteSpace(_detail.RulesVersion) || !string.IsNullOrWhiteSpace(_detail.AnalyzerVersion))
+                {
+                    <span class="muted small">规则版本 @_detail.RulesVersion ｜ 分析器 @_detail.AnalyzerVersion</span>
+                }
+            }
+            <span class="spacer"></span>
+            <a class="btn btn-sm" href="/">返回列表</a>
+        </div>
+    }
 
     @if (_detail is not null)
     {
@@ -76,6 +89,7 @@
     [Parameter] public string ActiveTab { get; set; } = string.Empty;
 
     private CaseDetailDto? _detail;
+    private string? _error;
     private JobDto? _activeJob;
     private System.Threading.Timer? _timer;
     private string _currentStageName = nameof(Domain.CaseStage.Created);
@@ -104,8 +118,11 @@
             _detail = await Api.GetCaseAsync(CaseId, CancellationToken.None);
             if (_detail is null)
             {
+                _error = "申请案例不存在或已被删除。";
                 return;
             }
+
+            _error = null;
 
             _currentStageName = _detail.StageNames.FirstOrDefault() ?? nameof(Domain.CaseStage.Created);
             var stageIndex = StageIndex(_detail.Summary.Stage.ToString());
@@ -117,9 +134,11 @@
             _activeJob = _detail.Jobs.FirstOrDefault(j => j.Status is Domain.JobStatus.Pending or Domain.JobStatus.Running)
                          ?? _detail.Jobs.FirstOrDefault();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // 轮询失败不打断页面显示。
+            _error = ex is Web.Services.ApiException { StatusCode: 404 }
+                ? "申请案例不存在或已被删除。"
+                : $"加载案例信息失败：{ex.Message}";
         }
     }
 

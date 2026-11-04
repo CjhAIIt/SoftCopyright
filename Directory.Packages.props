@@ -14,6 +14,8 @@
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.14" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.14" />
     <PackageVersion Include="MySql.EntityFrameworkCore" Version="10.0.12" />
+    <!-- 框架静态资源（_framework/blazor.web.js），版本跟随本机 ASP.NET Core 运行时 -->
+    <PackageVersion Include="Microsoft.AspNetCore.App.Internal.Assets" Version="10.0.9" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
 
     <!-- 基础库 -->
