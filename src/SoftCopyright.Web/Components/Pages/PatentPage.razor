@@ -5,6 +5,18 @@
 
 <CaseHeader CaseId="CaseId" ActiveTab="patent" />
 
+@if (_wrongFlow)
+{
+    <div class="card">
+        <div class="alert alert-warn">
+            该页面属于<b>专利申请流程</b>。当前案例是软著登记案例，请在「申请信息」与「代码材料」页准备软著材料。
+            <a class="btn btn-sm" href="/cases/@CaseId/applicant">前往申请信息</a>
+        </div>
+    </div>
+}
+else
+{
+
 <div class="page-head">
     <div>
         <h1>技术交底书</h1>
@@ -235,6 +247,8 @@
     </div>
 }
 
+}
+
 @code {
     [Parameter] public Guid CaseId { get; set; }
 
@@ -242,6 +256,7 @@
     private PatentDisclosureDto? _disclosure;
     private List<ValidationDto> _validation = [];
     private bool _busy;
+    private bool _wrongFlow;
     private string? _error;
     private string? _message;
     private System.Threading.Timer? _timer;
@@ -290,6 +305,13 @@
     {
         try
         {
+            var detail = await Api.GetCaseAsync(CaseId, CancellationToken.None);
+            _wrongFlow = detail.Summary.MaterialKind != MaterialKind.Patent;
+            if (_wrongFlow)
+            {
+                return;
+            }
+
             _disclosure = await Api.GetPatentDisclosureAsync(CaseId, CancellationToken.None);
             _form = new PatentDisclosureForm
             {

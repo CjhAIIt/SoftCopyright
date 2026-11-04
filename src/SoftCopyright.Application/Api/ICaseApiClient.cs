@@ -7,7 +7,16 @@ namespace SoftCopyright.Application.Api;
 /// <summary>UI 访问后端 API 的客户端契约。</summary>
 public interface ICaseApiClient
 {
+    /// <summary>取得全部可选的材料流程描述（软著登记 / 专利申请）。</summary>
+    Task<IReadOnlyList<MaterialFlowDto>> GetFlowsAsync(CancellationToken ct);
+
+    /// <summary>取得指定材料类型的流程描述。</summary>
+    Task<MaterialFlowDto> GetFlowAsync(MaterialKind materialKind, CancellationToken ct);
+
     Task<IReadOnlyList<CaseSummaryDto>> GetCasesAsync(CancellationToken ct);
+
+    /// <summary>列出某一材料类型的案例（两条流程各自独立的工作区）。</summary>
+    Task<IReadOnlyList<CaseSummaryDto>> GetCasesAsync(MaterialKind materialKind, CancellationToken ct);
 
     Task<CreateCaseResponse> CreateCaseAsync(string? name, CancellationToken ct);
 

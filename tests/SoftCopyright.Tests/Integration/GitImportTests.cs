@@ -17,7 +17,7 @@ public sealed class GitImportTests(ApiTestFactory factory) : IClassFixture<ApiTe
         using var temp = new TestTempDirectory("sc-git");
         var repositoryPath = GitFixture.CreateRepository(Path.Combine(temp.Path, "repo"));
 
-        var createResponse = await _client.PostAsJsonAsync("/api/cases", new { name = "Git 导入用例" });
+        var createResponse = await _client.PostAsJsonAsync("/api/softcopyright/cases", new { name = "Git 导入用例" });
         createResponse.EnsureSuccessStatusCode();
         using var createJson = JsonDocument.Parse(await createResponse.Content.ReadAsStringAsync());
         var caseId = createJson.RootElement.GetProperty("id").GetGuid();
@@ -58,7 +58,7 @@ public sealed class GitImportTests(ApiTestFactory factory) : IClassFixture<ApiTe
         using var temp = new TestTempDirectory("sc-git-meta");
         var repositoryPath = GitFixture.CreateRepository(Path.Combine(temp.Path, "repo"));
 
-        var createResponse = await _client.PostAsJsonAsync("/api/cases", new { name = "Git 来源记录" });
+        var createResponse = await _client.PostAsJsonAsync("/api/softcopyright/cases", new { name = "Git 来源记录" });
         createResponse.EnsureSuccessStatusCode();
         using var createJson = JsonDocument.Parse(await createResponse.Content.ReadAsStringAsync());
         var caseId = createJson.RootElement.GetProperty("id").GetGuid();
@@ -80,7 +80,7 @@ public sealed class GitImportTests(ApiTestFactory factory) : IClassFixture<ApiTe
     [Fact]
     public async Task 不在白名单的域名会被拒绝()
     {
-        var createResponse = await _client.PostAsJsonAsync("/api/cases", new { name = "非法域名" });
+        var createResponse = await _client.PostAsJsonAsync("/api/softcopyright/cases", new { name = "非法域名" });
         createResponse.EnsureSuccessStatusCode();
         using var createJson = JsonDocument.Parse(await createResponse.Content.ReadAsStringAsync());
         var caseId = createJson.RootElement.GetProperty("id").GetGuid();

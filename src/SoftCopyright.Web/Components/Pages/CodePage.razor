@@ -4,6 +4,19 @@
 
 <CaseHeader CaseId="CaseId" ActiveTab="code" />
 
+@if (_wrongFlow)
+{
+    <div class="card">
+        <div class="alert alert-warn">
+            该页面属于<b>软著登记流程</b>。专利申请文件不提交代码鉴别材料，因此专利案例无需勾选代码范围；
+            技术特征会直接从仓库证据中检索。
+            <a class="btn btn-sm" href="/cases/@CaseId/patent">前往专利交底书</a>
+        </div>
+    </div>
+}
+else
+{
+
 <div class="page-head">
     <div>
         <h1>代码材料选材</h1>
@@ -81,6 +94,8 @@
     </div>
 }
 
+}
+
 @code {
     [Parameter] public Guid CaseId { get; set; }
 
@@ -89,6 +104,7 @@
     private string? _previewPath;
     private string? _previewContent;
     private bool _busy;
+    private bool _wrongFlow;
     private string? _error;
     private string? _message;
 
@@ -101,6 +117,13 @@
     {
         try
         {
+            var detail = await Api.GetCaseAsync(CaseId, CancellationToken.None);
+            _wrongFlow = detail.Summary.MaterialKind != MaterialKind.SoftwareCopyright;
+            if (_wrongFlow)
+            {
+                return;
+            }
+
             _candidates = (await Api.GetCodeCandidatesAsync(CaseId, CancellationToken.None)).ToList();
             _selected = _candidates.Where(c => c.Included).Select(c => c.RelativePath).ToHashSet(StringComparer.OrdinalIgnoreCase);
             _error = null;

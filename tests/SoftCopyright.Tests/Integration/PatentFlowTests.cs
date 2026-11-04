@@ -15,8 +15,8 @@ public sealed class PatentFlowTests(ApiTestFactory factory) : IClassFixture<ApiT
     [Fact]
     public async Task 专利案例可以完成交底书到材料包的完整流程()
     {
-        // 1. 创建专利类型案例
-        var createResponse = await _client.PostAsJsonAsync("/api/cases", new { name = "专利流程用例", materialKind = "Patent" });
+        // 1. 创建专利类型案例（专利流程有独立的创建端点）
+        var createResponse = await _client.PostAsJsonAsync("/api/patent/cases", new { name = "专利流程用例" });
         createResponse.EnsureSuccessStatusCode();
         using var createJson = JsonDocument.Parse(await createResponse.Content.ReadAsStringAsync());
         var caseId = createJson.RootElement.GetProperty("id").GetGuid();

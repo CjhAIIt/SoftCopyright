@@ -16,7 +16,7 @@ public sealed class CaseFlowTests(ApiTestFactory factory) : IClassFixture<ApiTes
     public async Task 完整流程可以跑通并产出可下载的材料包()
     {
         // 1. 创建案例
-        var createResponse = await _client.PostAsJsonAsync("/api/cases", new { name = "集成测试案例" });
+        var createResponse = await _client.PostAsJsonAsync("/api/softcopyright/cases", new { name = "集成测试案例" });
         Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
         using var createJson = JsonDocument.Parse(await createResponse.Content.ReadAsStringAsync());
         var caseId = createJson.RootElement.GetProperty("id").GetGuid();
@@ -229,7 +229,7 @@ public sealed class CaseFlowTests(ApiTestFactory factory) : IClassFixture<ApiTes
 
     private async Task<Guid> CreateCaseAsync(string name)
     {
-        var response = await _client.PostAsJsonAsync("/api/cases", new { name });
+        var response = await _client.PostAsJsonAsync("/api/softcopyright/cases", new { name });
         response.EnsureSuccessStatusCode();
         using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         return json.RootElement.GetProperty("id").GetGuid();

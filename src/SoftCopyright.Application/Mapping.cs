@@ -13,6 +13,18 @@ public static class Mapping
         PropertyNameCaseInsensitive = true
     };
 
+    /// <summary>材料流程描述符 → DTO。</summary>
+    public static MaterialFlowDto ToDto(IMaterialFlowDescriptor flow) => new(
+        flow.Kind.ToString(),
+        flow.DisplayName,
+        flow.ShortName,
+        flow.Summary,
+        flow.Deliverables,
+        flow.StageLabels,
+        flow.Tabs.Select(t => new MaterialTabDto(t.Key, t.Label, t.Route)).ToList(),
+        flow.RequiresCodeSelection,
+        flow.WorkspacePath);
+
     public static string StageText(CaseStage stage) => stage switch
     {
         CaseStage.Created => "已创建",
@@ -75,8 +87,7 @@ public static class Mapping
         _ => kind.ToString()
     };
 
-    public static string ConfirmationStageText(ConfirmationStage stage) => stage switch
-    {
+    public static string ConfirmationStageText(ConfirmationStage stage) => stage switch    {
         ConfirmationStage.ProjectProfile => "项目画像确认",
         ConfirmationStage.ApplicantInfo => "申请信息确认",
         ConfirmationStage.CodeScope => "代码范围确认",

@@ -18,6 +18,10 @@ public sealed class CaseService(
     public async Task<IReadOnlyList<ApplicationCase>> ListAsync(CancellationToken ct) =>
         await cases.ListAsync(c => !c.IsDeleted, ct);
 
+    /// <summary>按材料类型列出案例：软著与专利各自独立的工作区。</summary>
+    public async Task<IReadOnlyList<ApplicationCase>> ListAsync(MaterialKind materialKind, CancellationToken ct) =>
+        await cases.ListAsync(c => !c.IsDeleted && c.MaterialKind == materialKind, ct);
+
     public async Task<ApplicationCase?> GetAsync(Guid id, CancellationToken ct)
     {
         var entity = await cases.FindAsync(id, ct);

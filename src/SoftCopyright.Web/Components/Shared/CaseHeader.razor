@@ -6,7 +6,7 @@
     {
         <div class="alert alert-danger">
             @_error
-            <a class="btn btn-sm" href="/">返回列表</a>
+            <a class="btn btn-sm" href="/">返回入口</a>
         </div>
     }
     else
@@ -26,10 +26,10 @@
                         来源仓库：@ShortCommit(_detail.Summary.SourceCommit)
                     </span>
                 }
-                <span class="badge badge-muted">@(_detail.Summary.MaterialKind == MaterialKind.Patent ? "专利申请" : "软著登记")</span>
+                <span class="badge badge-muted">@(_flow?.ShortName ?? _detail.Summary.MaterialKind.ToString())</span>
             }
             <span class="spacer"></span>
-            <a class="btn btn-sm" href="/">返回列表</a>
+            <a class="btn btn-sm" href="@(_flow?.WorkspacePath ?? "/")">返回列表</a>
         </div>
     }
 
@@ -56,7 +56,6 @@
             </div>
         }
     </div>
-
     @if (_activeJob is not null)
     {
         <div class="alert @(_activeJob.Status == Domain.JobStatus.Failed ? "alert-danger" : _activeJob.Status == Domain.JobStatus.Succeeded ? "alert-ok" : "alert-info")">
@@ -82,18 +81,13 @@
     }
 
     <div class="tabs">
-        <a class="tab @(ActiveTab == "import" ? "active" : "")" href="/cases/@CaseId/import">导入仓库</a>
-        <a class="tab @(ActiveTab == "analysis" ? "active" : "")" href="/cases/@CaseId/analysis">分析与证据</a>
-        @if (IsPatent)
+        @if (_flow is not null)
         {
-            <a class="tab @(ActiveTab == "patent" ? "active" : "")" href="/cases/@CaseId/patent">专利交底书</a>
+            @foreach (var tab in _flow.Tabs)
+            {
+                <a class="tab @(ActiveTab == tab.Key ? "active" : "")" href="/cases/@CaseId/@tab.Route">@tab.Label</a>
+            }
         }
-        else
-        {
-            <a class="tab @(ActiveTab == "applicant" ? "active" : "")" href="/cases/@CaseId/applicant">申请信息</a>
-            <a class="tab @(ActiveTab == "code" ? "active" : "")" href="/cases/@CaseId/code">代码材料</a>
-        }
-        <a class="tab @(ActiveTab == "materials" ? "active" : "")" href="/cases/@CaseId/materials">材料与导出</a>
     </div>
 </div>
 
@@ -103,23 +97,14 @@
     [Parameter] public string ActiveTab { get; set; } = string.Empty;
 
     private CaseDetailDto? _detail;
+    private MaterialFlowDto? _flow;
     private string? _error;
     private JobDto? _activeJob;
     private System.Threading.Timer? _timer;
     private string _currentStageName = nameof(Domain.CaseStage.Created);
 
-    private static readonly List<string> _stages =
-    [
-        "创建", "上传", "扫描", "分析完成", "申请信息", "代码范围", "草稿就绪", "材料审核", "校验", "材料包", "归档"
-    ];
-
-    // 专利案例不提交软件鉴别材料，阶段名改为交底书与权利要求。
-    private static readonly List<string> _patentStages =
-    [
-        "创建", "上传", "扫描", "分析完成", "交底书", "权利要求", "草稿就绪", "材料审核", "校验", "材料包", "归档"
-    ];
-
-    private IReadOnlyList<string> Stages => IsPatent ? _patentStages : _stages;
+    /// <summary>阶段条文案由流程描述符给出，两条流程各自定义。</summary>
+    private IReadOnlyList<string> Stages => _flow?.StageLabels ?? [];
 
     protected override async Task OnParametersSetAsync()
     {
@@ -145,6 +130,9 @@
             }
 
             _error = null;
+
+            // 流程描述决定阶段文案与标签栏，两条流程的差异只在这里读取一次。
+            _flow = await Api.GetFlowAsync(_detail.Summary.MaterialKind, CancellationToken.None);
 
             _currentStageName = _detail.StageNames.FirstOrDefault() ?? nameof(Domain.CaseStage.Created);
             var stageIndex = StageIndex(_detail.Summary.Stage.ToString());
@@ -185,8 +173,6 @@
 
     private static string ShortCommit(string? commit) =>
         string.IsNullOrWhiteSpace(commit) ? "已导入" : commit.Length <= 8 ? commit : commit[..8];
-
-    private bool IsPatent => _detail?.Summary.MaterialKind == MaterialKind.Patent;
 
     public void Dispose()
     {

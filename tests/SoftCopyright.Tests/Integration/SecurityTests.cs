@@ -125,7 +125,7 @@ public sealed class SecurityTests(ApiTestFactory factory) : IClassFixture<ApiTes
 
     private async Task<Guid> CreateCaseAsync(string name)
     {
-        var response = await _client.PostAsJsonAsync("/api/cases", new { name });
+        var response = await _client.PostAsJsonAsync("/api/softcopyright/cases", new { name });
         response.EnsureSuccessStatusCode();
         using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         return json.RootElement.GetProperty("id").GetGuid();

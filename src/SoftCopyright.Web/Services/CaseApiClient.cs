@@ -17,8 +17,17 @@ public sealed class CaseApiClient(HttpClient http) : ICaseApiClient
         Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
     };
 
+    public async Task<IReadOnlyList<MaterialFlowDto>> GetFlowsAsync(CancellationToken ct) =>
+        await GetAsync<List<MaterialFlowDto>>("/api/flows", ct) ?? [];
+
+    public async Task<MaterialFlowDto> GetFlowAsync(MaterialKind materialKind, CancellationToken ct) =>
+        (await GetAsync<MaterialFlowDto>($"/api/flows/{materialKind}", ct))!;
+
     public async Task<IReadOnlyList<CaseSummaryDto>> GetCasesAsync(CancellationToken ct) =>
         await GetAsync<List<CaseSummaryDto>>("/api/cases", ct) ?? [];
+
+    public async Task<IReadOnlyList<CaseSummaryDto>> GetCasesAsync(MaterialKind materialKind, CancellationToken ct) =>
+        await GetAsync<List<CaseSummaryDto>>($"/api/cases/by-kind/{materialKind}", ct) ?? [];
 
     public async Task<CreateCaseResponse> CreateCaseAsync(string? name, CancellationToken ct)
     {
@@ -29,7 +38,12 @@ public sealed class CaseApiClient(HttpClient http) : ICaseApiClient
 
     public async Task<CreateCaseResponse> CreateCaseAsync(string? name, MaterialKind materialKind, CancellationToken ct)
     {
-        var response = await http.PostAsJsonAsync("/api/cases", new CreateCaseRequest(name, materialKind), Options, ct);
+        // 两条流程各有独立创建端点，材料类型由端点决定。
+        var endpoint = materialKind == MaterialKind.Patent
+            ? "/api/patent/cases"
+            : "/api/softcopyright/cases";
+
+        var response = await http.PostAsJsonAsync(endpoint, new CreateCaseRequest(name), Options, ct);
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<CreateCaseResponse>(Options, ct))!;
     }
@@ -167,6 +181,13 @@ public sealed class CaseApiClient(HttpClient http) : ICaseApiClient
         }
 
         await EnsureSuccessAsync(response, ct);
+
+        // 空响应体（服务端对"尚无数据"返回 200 + 空体）不能直接反序列化，否则抛 JSON 解析异常。
+        if (response.Content.Headers.ContentLength is 0)
+        {
+            return default;
+        }
+
         return await response.Content.ReadFromJsonAsync<T>(Options, ct);
     }
 

@@ -1,0 +1,142 @@
+@page "/"
+@rendermode InteractiveServer
+@inject ICaseApiClient Api
+
+<PageTitle>知识产权申请材料工具</PageTitle>
+
+<div class="page-head">
+    <div>
+        <h1>选择要书写的申请材料</h1>
+        <div class="sub">两条流程各自独立：材料类型、页面构成、前置门禁与产物清单都不相同。</div>
+    </div>
+</div>
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger">@_error</div>
+}
+
+@if (_loading)
+{
+    <div class="card">
+        <div class="empty">正在加载材料流程……</div>
+    </div>
+}
+else
+{
+    <div class="entry-grid">
+        @foreach (var flow in _flows)
+        {
+            var current = flow;
+            <a class="entry-card @(current.Kind == "Patent" ? "entry-patent" : "entry-soft")" href="@current.WorkspacePath">
+                <div class="entry-kind">@current.ShortName</div>
+                <div class="entry-title">@current.DisplayName</div>
+                <p class="entry-desc">@current.Summary</p>
+                <div class="entry-line">
+                    <span class="entry-label">产出</span>
+                    <span class="entry-value">@current.Deliverables</span>
+                </div>
+                <div class="entry-go">进入 →</div>
+            </a>
+        }
+    </div>
+
+    <div class="card" style="margin-top:18px">
+        <h2>两条流程的差别</h2>
+        <table>
+            <thead>
+            <tr>
+                <th style="width:140px">环节</th>
+                <th>软著登记</th>
+                <th>专利申请</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td class="small">事实来源</td>
+                <td class="small">项目画像 + 申请信息</td>
+                <td class="small">项目画像 + 技术交底书（唯一真源）</td>
+            </tr>
+            <tr>
+                <td class="small">前置门禁</td>
+                <td class="small">项目画像 → 申请信息 → 代码范围 → 草稿</td>
+                <td class="small">项目画像 → 交底书与权利要求就绪 → 草稿</td>
+            </tr>
+            <tr>
+                <td class="small">代码范围</td>
+                <td class="small">必须勾选，代码鉴别材料逐行摘自真实源码</td>
+                <td class="small">不需要，专利申请文件不含代码鉴别材料</td>
+            </tr>
+            <tr>
+                <td class="small">产出文件</td>
+                <td class="small">申请表信息、操作手册、代码鉴别材料、证据清单、校验报告</td>
+                <td class="small">权利要求书、说明书、摘要、技术交底书</td>
+            </tr>
+            <tr>
+                <td class="small">需要人工判断</td>
+                <td class="small">著作权人、权属关系、开发方式等法律事实</td>
+                <td class="small">保护范围、新颖性、创造性、充分公开（须由专利代理人复核）</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private List<MaterialFlowDto> _flows = [];
+    private bool _loading = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _flows = (await Api.GetFlowsAsync(CancellationToken.None)).ToList();
+            _error = null;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}
+
+<style>
+    .entry-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+    .entry-card {
+        display: block; padding: 22px 24px; border-radius: 10px; border: 1px solid var(--line);
+        background: var(--panel); color: var(--text); position: relative; overflow: hidden;
+        transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+    }
+    .entry-card:hover { text-decoration: none; transform: translateY(-2px); box-shadow: 0 8px 22px rgba(31,35,40,.10); }
+    .entry-card::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; }
+
+    .entry-soft::before { background: #4f46e5; }
+    .entry-patent::before { background: #0f766e; }
+    .entry-soft:hover { border-color: #c7c9fb; }
+    .entry-patent:hover { border-color: #9fd3ce; }
+
+    .entry-kind { font-size: 12px; letter-spacing: .08em; color: var(--muted); }
+    .entry-soft .entry-kind { color: #4338ca; }
+    .entry-patent .entry-kind { color: #0f766e; }
+
+    .entry-title { font-size: 21px; font-weight: 700; margin: 6px 0 10px; }
+    .entry-desc { font-size: 13px; color: var(--muted); margin: 0 0 14px; min-height: 44px; }
+
+    .entry-line { font-size: 12px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 10px; }
+    .entry-label { display: inline-block; min-width: 32px; color: var(--text); font-weight: 600; }
+    .entry-value { display: inline-block; }
+
+    .entry-go { margin-top: 16px; font-size: 13px; font-weight: 600; }
+    .entry-soft .entry-go { color: #4338ca; }
+    .entry-patent .entry-go { color: #0f766e; }
+
+    @@media (max-width: 860px) {
+        .entry-grid { grid-template-columns: 1fr; }
+    }
+</style>

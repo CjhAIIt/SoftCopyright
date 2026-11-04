@@ -78,6 +78,9 @@ public interface ICaseService
 {
     Task<IReadOnlyList<ApplicationCase>> ListAsync(CancellationToken ct);
 
+    /// <summary>按材料类型列出案例：软著与专利各自独立的工作区。</summary>
+    Task<IReadOnlyList<ApplicationCase>> ListAsync(MaterialKind materialKind, CancellationToken ct);
+
     Task<ApplicationCase?> GetAsync(Guid id, CancellationToken ct);
 
     Task<ApplicationCase> CreateAsync(string? name, CancellationToken ct);

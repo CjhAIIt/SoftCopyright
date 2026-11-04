@@ -147,7 +147,7 @@ public sealed class PatentDocumentGenerator(ILogger<PatentDocumentGenerator> log
         }
 
         DocxWriter.AddHeading(document, "说明", 2);
-        DocxWriter.AddParagraph(document, "本文档由软著智能申请工具依据技术交底书与仓库证据自动生成，属于申请文件初稿；权利要求的保护范围、新颖性与创造性必须由专利代理人复核。");
+        DocxWriter.AddParagraph(document, "本文档由知识产权申请材料工具依据技术交底书与仓库证据自动生成，属于申请文件初稿；权利要求的保护范围、新颖性与创造性必须由专利代理人复核。");
         DocxWriter.AddParagraph(document, request.RulesSource);
 
         var bytes = document.ToBytes();

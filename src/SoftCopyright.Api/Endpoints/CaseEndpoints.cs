@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using SoftCopyright.Application;
 using SoftCopyright.Application.Contracts;
 using SoftCopyright.Application.Dtos;
+using SoftCopyright.Application.MaterialFlows;
 using SoftCopyright.Application.Services;
 using SoftCopyright.Domain;
 using SoftCopyright.Domain.Contracts;
@@ -16,6 +17,26 @@ public static class CaseEndpoints
 {
     public static void MapSoftCopyrightApi(this WebApplication app)
     {
+        // 两条材料流程各自独立的入口端点：类型由端点决定，不再由调用方传参选择。
+        app.MapPost("/api/softcopyright/cases", async (CreateCaseRequest request, ICaseService cases, CancellationToken ct) =>
+        {
+            var entity = await cases.CreateAsync(request.Name, MaterialKind.SoftwareCopyright, ct);
+            return Results.Created($"/api/cases/{entity.Id}", new CreateCaseResponse(entity.Id, entity.Name));
+        });
+
+        app.MapPost("/api/patent/cases", async (CreateCaseRequest request, ICaseService cases, CancellationToken ct) =>
+        {
+            var entity = await cases.CreateAsync(request.Name, MaterialKind.Patent, ct);
+            return Results.Created($"/api/cases/{entity.Id}", new CreateCaseResponse(entity.Id, entity.Name));
+        });
+
+        // 流程描述：前端据此渲染入口页与工作台，两条流程的差异只在这里定义一次。
+        app.MapGet("/api/flows", (MaterialFlowRegistry flows) =>
+            Results.Ok(flows.All.Select(Mapping.ToDto).ToList()));
+
+        app.MapGet("/api/flows/{kind:regex(^(SoftwareCopyright|Patent)$)}", (MaterialKind kind, MaterialFlowRegistry flows) =>
+            Results.Ok(Mapping.ToDto(flows.Get(kind))));
+
         var group = app.MapGroup("/api/cases");
 
         group.MapGet("/", async (ICaseService cases, CancellationToken ct) =>
@@ -31,10 +52,17 @@ public static class CaseEndpoints
             return Results.Ok(items);
         });
 
-        group.MapPost("/", async (CreateCaseRequest request, ICaseService cases, CancellationToken ct) =>
+        group.MapGet("/by-kind/{kind:regex(^(SoftwareCopyright|Patent)$)}", async (MaterialKind kind, ICaseService cases, CancellationToken ct) =>
         {
-            var entity = await cases.CreateAsync(request.Name, request.MaterialKind, ct);
-            return Results.Created($"/api/cases/{entity.Id}", new CreateCaseResponse(entity.Id, entity.Name));
+            var entities = await cases.ListAsync(kind, ct);
+            var service = (CaseService)cases;
+            var items = new List<CaseSummaryDto>();
+            foreach (var entity in entities)
+            {
+                items.Add(await service.ToSummaryAsync(entity, ct));
+            }
+
+            return Results.Ok(items);
         });
 
         group.MapGet("/{id:guid}", async (Guid id, ICaseService cases, ICaseWorkflow workflow, IBackgroundJobQueue queue, IConfirmationService confirmationService, CancellationToken ct) =>
@@ -145,7 +173,7 @@ public static class CaseEndpoints
             var analysis = (await analyses.ListAsync(a => a.CaseId == id, ct)).OrderByDescending(a => a.CreatedAt).FirstOrDefault();
             if (analysis is null)
             {
-                return Results.Ok((AnalysisDto?)null);
+                return Results.Content("null", "application/json");
             }
 
             var caseEvidences = await evidences.ListAsync(e => e.CaseId == id, ct);
@@ -158,7 +186,8 @@ public static class CaseEndpoints
             var info = await service.GetAsync(id, ct);
             if (info is null)
             {
-                return Results.Ok((ApplicantInfoDto?)null);
+                // 必须返回 JSON null 而不是 200 空响应体，否则客户端反序列化会失败。
+                return Results.Content("null", "application/json");
             }
 
             var statuses = await confirmations.ListAsync(id, ct);

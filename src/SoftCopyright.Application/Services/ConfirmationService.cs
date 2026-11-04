@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using SoftCopyright.Application.Confirmation;
 using SoftCopyright.Application.Dtos;
 using SoftCopyright.Domain;
 using SoftCopyright.Domain.Contracts;
@@ -19,6 +20,7 @@ public sealed class ConfirmationService(
     IRepository<CodeSelection> selections,
     IRepository<CodeSelectionItem> selectionItems,
     IRepository<GeneratedArtifact> artifacts,
+    ConfirmationGateRegistry gates,
     ICaseWorkflow workflow,
     IOptions<MaterialRules> rulesOptions,
     ILogger<ConfirmationService> logger) : IConfirmationService
@@ -231,105 +233,51 @@ public sealed class ConfirmationService(
         return Hashing.Of(applicantHash, selection.ConfirmedHash, string.Join("|", included));
     }
 
+    /// <summary>
+    /// 校验确认阶段的前置条件。软著与专利的前置条件完全不同，
+    /// 这里只负责装载数据并交给对应材料类型的门禁判断。
+    /// </summary>
     private async Task EnsurePreconditionsAsync(Guid caseId, ConfirmationStage stage, ApplicationCase caseEntity, CancellationToken ct)
     {
-        switch (stage)
+        var info = (await applicantInfos.ListAsync(a => a.CaseId == caseId, ct)).FirstOrDefault();
+        var selection = (await selections.ListAsync(s => s.CaseId == caseId, ct)).FirstOrDefault();
+        var items = selection is null
+            ? []
+            : await selectionItems.ListAsync(i => i.SelectionId == selection.Id, ct);
+        var disclosure = (await disclosures.ListAsync(d => d.CaseId == caseId, ct)).FirstOrDefault();
+        var claims = await patentClaims.ListAsync(c => c.CaseId == caseId, ct);
+        var caseArtifacts = await artifacts.ListAsync(a => a.CaseId == caseId, ct);
+
+        var context = new ConfirmationGateContext(
+            caseId,
+            caseEntity,
+            info,
+            selection,
+            items,
+            disclosure,
+            claims,
+            caseArtifacts,
+            required => IsConfirmationValidAsync(caseId, required, ct));
+
+        await gates.Get(caseEntity.MaterialKind).EnsureAsync(stage, context, ct);
+    }
+
+    /// <summary>某个确认阶段是否已确认且未因上游变更而失效。</summary>
+    private async Task<bool> IsConfirmationValidAsync(Guid caseId, ConfirmationStage stage, CancellationToken ct)
+    {
+        var records = await confirmations.ListAsync(c => c.CaseId == caseId, ct);
+        var record = records
+            .Where(r => r.Stage == stage)
+            .OrderByDescending(r => r.ConfirmedAt)
+            .FirstOrDefault();
+
+        if (record is null)
         {
-            case ConfirmationStage.ProjectProfile:
-                return;
-
-            case ConfirmationStage.ApplicantInfo:
-            {
-                var info = (await applicantInfos.ListAsync(a => a.CaseId == caseId, ct)).FirstOrDefault();
-                if (info is null || string.IsNullOrWhiteSpace(info.SoftwareFullName))
-                {
-                    throw new ConflictException("请先填写申请信息，再进行确认。");
-                }
-
-                return;
-            }
-
-            case ConfirmationStage.CodeScope:
-            {
-                var selection = (await selections.ListAsync(s => s.CaseId == caseId, ct)).FirstOrDefault();
-                if (selection is null)
-                {
-                    throw new ConflictException("请先选择纳入材料包的真实源文件。");
-                }
-
-                var items = await selectionItems.ListAsync(i => i.SelectionId == selection.Id, ct);
-                if (!items.Any(i => i.Included))
-                {
-                    throw new ConflictException("至少需要勾选一个源文件才能确认代码范围。");
-                }
-
-                return;
-            }
-
-            case ConfirmationStage.DocumentDraft:
-            {
-                var patentCase = await cases.FindAsync(caseId, ct);
-
-                // 专利案例的"草稿"由技术交底书派生，不走软著的申请信息与代码范围门禁。
-                if (patentCase?.MaterialKind == MaterialKind.Patent)
-                {
-                    var disclosure = (await disclosures.ListAsync(d => d.CaseId == caseId, ct)).FirstOrDefault();
-                    if (disclosure is null || string.IsNullOrWhiteSpace(disclosure.TechnicalSolution))
-                    {
-                        throw new ConflictException("请先填写技术交底书，再确认草稿。");
-                    }
-
-                    var generatedClaims = await patentClaims.ListAsync(c => c.CaseId == caseId, ct);
-                    if (generatedClaims.Count == 0)
-                    {
-                        throw new ConflictException("请先生成专利草稿（权利要求），再确认草稿。");
-                    }
-
-                    return;
-                }
-
-                // 软著案例：草稿确认依赖前序三道门禁已经通过且未失效。
-                var records = await confirmations.ListAsync(c => c.CaseId == caseId, ct);
-                foreach (var required in new[]
-                         {
-                             ConfirmationStage.ProjectProfile,
-                             ConfirmationStage.ApplicantInfo,
-                             ConfirmationStage.CodeScope
-                         })
-                {
-                    var record = records
-                        .Where(r => r.Stage == required)
-                        .OrderByDescending(r => r.ConfirmedAt)
-                        .FirstOrDefault();
-
-                    if (record is null)
-                    {
-                        throw new ConflictException(
-                            $"请先完成「{Mapping.ConfirmationStageText(required)}」，再确认文档草稿。");
-                    }
-
-                    var currentHash = await ComputeDataHashAsync(caseId, required, ct);
-                    if (!string.Equals(currentHash, record.DataHash, StringComparison.Ordinal))
-                    {
-                        throw new ConflictException(
-                            $"「{Mapping.ConfirmationStageText(required)}」的确认已失效，请重新确认后再确认文档草稿。");
-                    }
-                }
-
-                return;
-            }
-
-            case ConfirmationStage.FinalPackage:
-            {
-                var finalArtifacts = await artifacts.ListAsync(a => a.CaseId == caseId, ct);
-                if (!finalArtifacts.Any(a => a.Kind == ArtifactKind.Package && !a.IsStale))
-                {
-                    throw new ConflictException("请先生成材料包，再进行最终确认。");
-                }
-
-                return;
-            }
+            return false;
         }
+
+        var currentHash = await ComputeDataHashAsync(caseId, stage, ct);
+        return string.Equals(currentHash, record.DataHash, StringComparison.Ordinal);
     }
 
     private async Task ApplyStageTransitionAsync(ApplicationCase caseEntity, ConfirmationStage stage, CancellationToken ct)

@@ -23,6 +23,24 @@ public sealed record CaseSummaryDto(
 /// <summary>创建案例请求。</summary>
 public sealed record CreateCaseRequest(string? Name, MaterialKind MaterialKind = MaterialKind.SoftwareCopyright);
 
+/// <summary>材料流程的一个工作页标签。</summary>
+public sealed record MaterialTabDto(string Key, string Label, string Route);
+
+/// <summary>
+/// 材料流程描述：软著登记与专利申请两条流程各自的阶段文案、页面构成与产物清单。
+/// 前端据此渲染入口页与工作台，不再在前端硬编码两条流程的差异。
+/// </summary>
+public sealed record MaterialFlowDto(
+    string Kind,
+    string DisplayName,
+    string ShortName,
+    string Summary,
+    string Deliverables,
+    IReadOnlyList<string> StageLabels,
+    IReadOnlyList<MaterialTabDto> Tabs,
+    bool RequiresCodeSelection,
+    string WorkspacePath);
+
 /// <summary>创建案例结果。</summary>
 public sealed record CreateCaseResponse(Guid Id, string Name);
 

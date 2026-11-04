@@ -4,6 +4,18 @@
 
 <CaseHeader CaseId="CaseId" ActiveTab="applicant" />
 
+@if (_wrongFlow)
+{
+    <div class="card">
+        <div class="alert alert-warn">
+            该页面属于<b>软著登记流程</b>。当前案例是专利申请案例，请在「专利交底书」页填写技术交底书。
+            <a class="btn btn-sm" href="/cases/@CaseId/patent">前往专利交底书</a>
+        </div>
+    </div>
+}
+else
+{
+
 <div class="page-head">
     <div>
         <h1>申请信息</h1>
@@ -123,6 +135,8 @@
     }
 </div>
 
+}
+
 @code {
     [Parameter] public Guid CaseId { get; set; }
 
@@ -130,6 +144,7 @@
 
     private Dictionary<string, string> _sources = new();
     private bool _busy;
+    private bool _wrongFlow;
     private string? _error;
     private string? _message;
 
@@ -144,6 +159,13 @@
     {
         try
         {
+            var detail = await Api.GetCaseAsync(CaseId, CancellationToken.None);
+            _wrongFlow = detail.Summary.MaterialKind != MaterialKind.SoftwareCopyright;
+            if (_wrongFlow)
+            {
+                return;
+            }
+
             var info = await Api.GetApplicantInfoAsync(CaseId, CancellationToken.None);
             if (info is null)
             {

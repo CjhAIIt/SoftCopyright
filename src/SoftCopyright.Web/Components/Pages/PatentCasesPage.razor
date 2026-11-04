@@ -1,0 +1,132 @@
+@page "/patent"
+@rendermode InteractiveServer
+@inject ICaseApiClient Api
+@inject NavigationManager Nav
+
+<PageTitle>专利材料书写 · 知识产权申请材料工具</PageTitle>
+
+<div class="page-head">
+    <div>
+        <h1>专利材料书写</h1>
+        <div class="sub">面向发明与实用新型专利：技术交底书是唯一真源，权利要求书、说明书与摘要都由它派生。</div>
+    </div>
+    <div class="actions">
+        <input type="text" placeholder="新案例名称（可留空）" @bind="_newName" style="width:200px" />
+        <button class="btn btn-primary" disabled="@_busy" @onclick="CreateAsync">新建专利案例</button>
+    </div>
+</div>
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger">@_error</div>
+}
+
+<div class="alert alert-warn">
+    本工具产出的是专利申请文件<b>初稿</b>：权利要求的保护范围、新颖性与创造性，以及说明书是否充分公开，<b>必须由专利代理人复核</b>。
+    本工具不提供现有技术检索，也不对新颖性作任何判断；现有技术需由申请人自行填写并注明来源。
+</div>
+
+<div class="card">
+    @if (_loading)
+    {
+        <div class="empty">正在加载专利案例列表……</div>
+    }
+    else
+    {
+        <CaseListTable Cases="_cases"
+                       BadgeText="专利申请"
+                       ShowSoftwareName="false"
+                       Busy="_busy"
+                       EmptyText="还没有专利案例。点击右上角「新建专利案例」开始导入代码仓库。"
+                       OnDelete="AskDelete" />
+    }
+</div>
+
+@if (_pendingDelete is not null)
+{
+    <div class="card">
+        <div class="alert alert-warn">
+            确认删除案例「@_pendingDelete.Name」？该操作会移除上传的压缩包、扫描证据、确认记录与已生成的申请文件，且无法撤销。
+        </div>
+        <div class="row">
+            <button class="btn btn-danger" disabled="@_busy" @onclick="DeleteAsync">确认删除</button>
+            <button class="btn" disabled="@_busy" @onclick="() => _pendingDelete = null">取消</button>
+        </div>
+    </div>
+}
+
+@code {
+    private List<CaseSummaryDto> _cases = [];
+    private bool _loading = true;
+    private bool _busy;
+    private string? _error;
+    private string? _newName;
+    private CaseSummaryDto? _pendingDelete;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            _cases = (await Api.GetCasesAsync(MaterialKind.Patent, CancellationToken.None)).ToList();
+            _error = null;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task CreateAsync()
+    {
+        _busy = true;
+        try
+        {
+            var created = await Api.CreateCaseAsync(_newName, MaterialKind.Patent, CancellationToken.None);
+            Nav.NavigateTo($"/cases/{created.Id}/import");
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void AskDelete(CaseSummaryDto item) => _pendingDelete = item;
+
+    private async Task DeleteAsync()
+    {
+        if (_pendingDelete is null)
+        {
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            await Api.DeleteCaseAsync(_pendingDelete.Id, CancellationToken.None);
+            _pendingDelete = null;
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

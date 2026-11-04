@@ -150,7 +150,7 @@ public sealed class MaterialDocumentGenerator(
             }
 
             DocxWriter.AddHeading(document, "五、注意事项", 1);
-            DocxWriter.AddParagraph(document, "本文档由软著智能申请工具依据仓库证据与申请人确认信息自动生成，"
+            DocxWriter.AddParagraph(document, "本文档由知识产权申请材料工具依据仓库证据与申请人确认信息自动生成，"
                 + "内容仅供申请材料准备参考，须由申请人核对后再提交官方系统。");
             DocxWriter.AddParagraph(document, request.RulesSource);
 

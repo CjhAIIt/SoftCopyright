@@ -51,7 +51,7 @@ public sealed class UiAssetTests(ApiTestFactory factory) : IClassFixture<ApiTest
         response.EnsureSuccessStatusCode();
 
         var html = await response.Content.ReadAsStringAsync();
-        Assert.Contains("软著智能申请工具", html);
+        Assert.Contains("知识产权申请材料工具", html);
         Assert.Contains("blazor.web.js", html);
     }
 

@@ -1,0 +1,70 @@
+@using SoftCopyright.Application.Dtos
+@using SoftCopyright.Domain
+
+@if (Cases.Count == 0)
+{
+    <div class="empty">@EmptyText</div>
+}
+else
+{
+    <table>
+        <thead>
+        <tr>
+            <th>案例名称</th>
+            @if (ShowSoftwareName)
+            {
+                <th>软件名称</th>
+            }
+            <th>材料类型</th>
+            <th>当前阶段</th>
+            <th>状态</th>
+            <th>确认进度</th>
+            <th>更新时间</th>
+            <th style="width:150px">操作</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var item in Cases)
+        {
+            <tr>
+                <td><a href="/cases/@item.Id/import">@item.Name</a></td>
+                @if (ShowSoftwareName)
+                {
+                    <td>@item.SoftwareFullName</td>
+                }
+                <td><span class="badge badge-muted">@BadgeText</span></td>
+                <td><span class="badge @(StageBadge(item.Stage))">@item.StageText</span></td>
+                <td class="small muted">@item.StatusMessage</td>
+                <td class="small">@item.ConfirmedCount / @item.TotalConfirmations</td>
+                <td class="small muted">@item.UpdatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                <td>
+                    <a class="btn btn-sm" href="/cases/@item.Id/import">打开</a>
+                    <button class="btn btn-sm btn-danger" disabled="@Busy" @onclick="() => OnDelete.InvokeAsync(item)">删除</button>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+
+@code {
+    [Parameter] public IReadOnlyList<CaseSummaryDto> Cases { get; set; } = [];
+
+    [Parameter] public string EmptyText { get; set; } = "还没有案例。";
+
+    [Parameter] public string BadgeText { get; set; } = string.Empty;
+
+    [Parameter] public bool ShowSoftwareName { get; set; }
+
+    [Parameter] public bool Busy { get; set; }
+
+    [Parameter] public EventCallback<CaseSummaryDto> OnDelete { get; set; }
+
+    private static string StageBadge(CaseStage stage) => stage switch
+    {
+        CaseStage.Failed => "badge-danger",
+        CaseStage.Archived or CaseStage.PackageReady => "badge-ok",
+        CaseStage.AnalysisReady or CaseStage.DraftReady => "badge-info",
+        _ => "badge-muted"
+    };
+}
