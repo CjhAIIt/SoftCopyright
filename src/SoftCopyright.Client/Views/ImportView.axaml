@@ -1,0 +1,77 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SoftCopyright.Client.ViewModels"
+             x:Class="SoftCopyright.Client.Views.ImportView"
+             x:DataType="vm:ImportViewModel">
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Spacing="16">
+
+            <StackPanel Spacing="4">
+                <TextBlock Text="导入仓库" Classes="title" />
+                <TextBlock Classes="muted"
+                           Text="从本机 ZIP 压缩包或 Git 仓库导入。导入过程只做只读静态解析，不会执行仓库中的任何脚本、构建或安装命令。"  TextWrapping="Wrap"/>
+            </StackPanel>
+
+            <Border Classes="card">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="从 ZIP 压缩包导入" Classes="section" />
+                    <TextBlock Classes="muted"
+                               Text="请先在本地把代码仓库打包为 ZIP（单个压缩包最大 50 MB）。"  TextWrapping="Wrap"/>
+                    <Grid ColumnDefinitions="*,Auto,Auto">
+                        <TextBox Grid.Column="0"
+                                 Text="{Binding SelectedZipPath}"
+                                 IsReadOnly="True"
+                                 PlaceholderText="尚未选择文件" />
+                        <Button Grid.Column="1" Margin="10,0,0,0" Content="选择文件" Command="{Binding ChooseZipCommand}" />
+                        <Button Grid.Column="2"
+                                Classes="primary"
+                                Margin="10,0,0,0"
+                                Content="导入并扫描"
+                                Command="{Binding ImportZipCommand}" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="从 Git 仓库导入" Classes="section" />
+                    <TextBlock Classes="muted"
+                               Text="支持 GitHub、Gitee、GitLab 以及白名单内的自建 Git 服务。克隆过程只调用 git 自身：禁用钩子目录、符号链接与 LFS 过滤器，完成后删除 .git。"  TextWrapping="Wrap"/>
+                    <Grid ColumnDefinitions="*,Auto,Auto">
+                        <TextBox Grid.Column="0"
+                                 Text="{Binding GitUrl}"
+                                 PlaceholderText="https://github.com/owner/repo" />
+                        <TextBox Grid.Column="1"
+                                 Width="180"
+                                 Margin="10,0,0,0"
+                                 Text="{Binding GitBranch}"
+                                 PlaceholderText="分支（可选）" />
+                        <Button Grid.Column="2"
+                                Classes="primary"
+                                Margin="10,0,0,0"
+                                Content="克隆并扫描"
+                                Command="{Binding ImportGitCommand}" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="alert info">
+                <StackPanel Spacing="6">
+                    <TextBlock Text="安全处理说明" FontWeight="SemiBold" />
+                    <TextBlock Classes="muted"
+                               Text="疑似凭据文件（.env、私钥、Token 等）会被识别并排除，不会出现在证据、模型请求或普通日志中。依赖目录与构建产物默认排除，排除原因会逐条列出。"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card" IsVisible="{Binding HasMessage}">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="导入结果" Classes="section" />
+                    <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
+                    <TextBlock Classes="muted" Text="{Binding Summary}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

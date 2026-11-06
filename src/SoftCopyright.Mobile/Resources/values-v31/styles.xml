@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<resources>
+
+  <style name="MyTheme">
+  </style>
+
+  <!-- Android 12 及以上：沿用无标题栏主题，不引入额外的 SplashScreen 依赖。 -->
+  <style name="MyTheme.NoActionBar" parent="@style/Theme.AppCompat.NoActionBar">
+    <item name="android:windowActionBar">false</item>
+    <item name="android:windowBackground">@color/splash_background</item>
+    <item name="android:windowNoTitle">true</item>
+  </style>
+</resources>

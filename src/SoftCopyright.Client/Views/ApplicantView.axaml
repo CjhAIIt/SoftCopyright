@@ -1,0 +1,310 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SoftCopyright.Client.ViewModels"
+             x:Class="SoftCopyright.Client.Views.ApplicantView"
+             x:DataType="vm:ApplicantViewModel">
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Spacing="16">
+
+            <StackPanel Spacing="4">
+                <TextBlock Text="申请信息" Classes="title" />
+                <TextBlock Classes="muted"
+                           Text="带 * 的字段为必填。标有「官方规定选项」的字段只能从规定候选项中选择；法律与权属字段必须由申请人填写并确认。"
+                           TextWrapping="Wrap" />
+            </StackPanel>
+
+            <Border Classes="alert info">
+                <TextBlock Text="{Binding OptionSource}" Classes="muted" TextWrapping="Wrap" />
+            </Border>
+
+            <!-- ── 一、软件基本信息 ─────────────────────────────────── -->
+            <Border Classes="card">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="一、软件基本信息" Classes="section" />
+
+                    <!-- 流式布局：宽屏自动排成多列，窄屏（手机）自动变单列 -->
+                    <WrapPanel ItemWidth="300" Orientation="Horizontal">
+                        <StackPanel Margin="0,0,16,16">
+                            <TextBlock Text="软件全称 *" Classes="field-label" />
+                            <TextBox Classes="field" Text="{Binding SoftwareFullName}" PlaceholderText="例如：样例管理系统" />
+                            <TextBlock Classes="muted" FontSize="11.5" Margin="0,4,0,0"
+                                       Text="不得以「工具」「计算」「系列」等结尾。"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,16,16">
+                            <TextBlock Text="软件简称" Classes="field-label" />
+                            <TextBox Classes="field" Text="{Binding SoftwareAbbreviation}" PlaceholderText="没有简称请留空" />
+                            <TextBlock Classes="muted" FontSize="11.5" Margin="0,4,0,0"
+                                       Text="不得与软件全称完全相同。"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,16,16">
+                            <TextBlock Text="版本号 *" Classes="field-label" />
+                            <TextBox Classes="field" Text="{Binding VersionNumber}" PlaceholderText="V1.0" />
+                            <TextBlock Classes="muted" FontSize="11.5" Margin="0,4,0,0"
+                                       Text="建议 V1.0 或 1.0，与页眉一致。"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,16,16">
+                            <TextBlock Text="分类号" Classes="field-label" />
+                            <TextBox Classes="field" Text="{Binding ClassificationCode}" PlaceholderText="×××××-××××" />
+                            <TextBlock Classes="muted" FontSize="11.5" Margin="0,4,0,0"
+                                       Text="GB/T 13702 + GB/T 4754 代码。"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,16,16">
+                            <TextBlock Text="著作权人 *" Classes="field-label" />
+                            <TextBox Classes="field" Text="{Binding CopyrightOwner}" PlaceholderText="姓名或名称" />
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,16,16">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="著作权人类别 *" Classes="field-label" />
+                                <Border Classes="badge info">
+                                    <TextBlock Text="官方规定选项" />
+                                </Border>
+                            </StackPanel>
+                            <ComboBox Classes="field" ItemsSource="{Binding OwnerTypeOptions}" SelectedItem="{Binding OwnerType}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:OptionItem">
+                                        <TextBlock Text="{Binding Label}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </StackPanel>
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- ── 二、软件作品说明 ─────────────────────────────────── -->
+            <Border Classes="card">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="二、软件作品说明" Classes="section" />
+                    <WrapPanel ItemWidth="300" Orientation="Horizontal">
+                        <StackPanel Margin="0,0,16,16">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="软件来源 *" Classes="field-label" />
+                                <Border Classes="badge info">
+                                    <TextBlock Text="官方规定选项" />
+                                </Border>
+                            </StackPanel>
+                            <ComboBox Classes="field" ItemsSource="{Binding SoftwareSourceOptions}" SelectedItem="{Binding SoftwareSource}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:OptionItem">
+                                        <TextBlock Text="{Binding Label}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,16,16" IsVisible="{Binding IsModificationVisible}">
+                            <TextBlock Text="修改说明 *" Classes="field-label" />
+                            <TextBox Classes="field" Text="{Binding ModificationDescription}"
+                                     PlaceholderText="说明本次登记软件相对原版本的修改内容"
+                                     AcceptsReturn="True" Height="96" TextWrapping="Wrap" />
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,16,16">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="开发方式 *" Classes="field-label" />
+                                <Border Classes="badge info">
+                                    <TextBlock Text="官方规定选项" />
+                                </Border>
+                            </StackPanel>
+                            <ComboBox Classes="field" ItemsSource="{Binding DevelopmentModeOptions}" SelectedItem="{Binding DevelopmentMode}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:OptionItem">
+                                        <TextBlock Text="{Binding Label}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                            <Border Classes="alert warn" Margin="0,8,0,0" IsVisible="{Binding HasConstraint}">
+                                <TextBlock Text="{Binding ConstraintHint}" TextWrapping="Wrap" />
+                            </Border>
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,16,16">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="发表状态 *" Classes="field-label" />
+                                <Border Classes="badge info">
+                                    <TextBlock Text="官方规定选项" />
+                                </Border>
+                            </StackPanel>
+                            <ComboBox Classes="field" ItemsSource="{Binding PublicationStatusOptions}" SelectedItem="{Binding PublicationStatus}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:OptionItem">
+                                        <TextBlock Text="{Binding Label}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,16,16" IsVisible="{Binding IsPublicationVisible}">
+                            <TextBlock Text="首次发表日期 *" Classes="field-label" />
+                            <TextBox Classes="field" Text="{Binding FirstPublicationDate}" PlaceholderText="YYYY-MM-DD" />
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,16,16" IsVisible="{Binding IsPublicationVisible}">
+                            <TextBlock Text="首次发表地点 *" Classes="field-label" />
+                            <TextBox Classes="field" Text="{Binding FirstPublicationPlace}" PlaceholderText="例如：广东省深圳市" />
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,16,16">
+                            <TextBlock Text="开发完成日期" Classes="field-label" />
+                            <TextBox Classes="field" Text="{Binding CompletionDate}" PlaceholderText="YYYY-MM-DD" />
+                            <TextBlock Classes="muted" FontSize="11.5" Margin="0,4,0,0"
+                                       Text="指将软件全部固定在某种有形载体上的日期。"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- ── 三、权利说明 ─────────────────────────────────────── -->
+            <Border Classes="card">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="三、权利说明" Classes="section" />
+                    <WrapPanel ItemWidth="300" Orientation="Horizontal">
+                        <StackPanel Margin="0,0,16,16">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="权利取得方式 *" Classes="field-label" />
+                                <Border Classes="badge info">
+                                    <TextBlock Text="官方规定选项" />
+                                </Border>
+                            </StackPanel>
+                            <ComboBox Classes="field" ItemsSource="{Binding RightsAcquisitionOptions}" SelectedItem="{Binding RightsAcquisitionMethod}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:OptionItem">
+                                        <TextBlock Text="{Binding Label}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,16,16" IsVisible="{Binding IsOriginalRegistrationVisible}">
+                            <TextBlock Text="原登记号 *" Classes="field-label" />
+                            <TextBox Classes="field" Text="{Binding OriginalRegistrationNumber}" PlaceholderText="例如：2024SR0123456" />
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,16,16">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="权利范围 *" Classes="field-label" />
+                                <Border Classes="badge info">
+                                    <TextBlock Text="官方规定选项" />
+                                </Border>
+                            </StackPanel>
+                            <ComboBox Classes="field" ItemsSource="{Binding RightsScopeOptions}" SelectedItem="{Binding RightsScope}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:OptionItem">
+                                        <TextBlock Text="{Binding Label}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,16,16" IsVisible="{Binding IsPartialRightsVisible}">
+                            <TextBlock Text="部分权利权项说明 *" Classes="field-label" />
+                            <TextBox Classes="field" Text="{Binding PartialRightsDescription}"
+                                     PlaceholderText="注明具体享有的权项，如：复制权、发行权"
+                                     AcceptsReturn="True" Height="96" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- ── 四、软件功能和技术特点 ───────────────────────────── -->
+            <Border Classes="card">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="四、软件功能和技术特点" Classes="section" />
+                    <WrapPanel ItemWidth="300" Orientation="Horizontal">
+                        <StackPanel Margin="0,0,16,16">
+                            <TextBlock Text="硬件环境 *" Classes="field-label" />
+                            <TextBox Classes="field" Text="{Binding DevelopmentEnvironment}" PlaceholderText="例如：Windows 11 + .NET 10" />
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,16,16">
+                            <TextBlock Text="软件环境 *" Classes="field-label" />
+                            <TextBox Classes="field" Text="{Binding RuntimeEnvironment}" PlaceholderText="例如：Windows 10 及以上" />
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,16,16">
+                            <TextBlock Text="编程语言 *" Classes="field-label" />
+                            <TextBox Classes="field" Text="{Binding ProgrammingLanguages}" PlaceholderText="例如：C#、JavaScript" />
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,16,16">
+                            <TextBlock Text="源程序量 *" Classes="field-label" />
+                            <TextBox Classes="field" Text="{Binding SourceProgramAmount}" PlaceholderText="例如：3200 行" />
+                            <TextBlock Classes="muted" FontSize="11.5" Margin="0,4,0,0"
+                                       Text="用于与材料中的实际代码行数交叉核对。"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                    </WrapPanel>
+
+                    <TextBlock Text="功能简介 *" Classes="field-label" Margin="0,6,0,0" />
+                    <TextBox Text="{Binding FunctionSummary}"
+                             AcceptsReturn="True" Height="120" TextWrapping="Wrap"
+                             PlaceholderText="简述开发目的、主要功能与技术特点" />
+                    <TextBlock Classes="muted" FontSize="11.5" Margin="0,4,0,0"
+                               Text="官方对本栏有字数上限要求，请按最新要求核对。"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <!-- ── 五、软件鉴别材料与申请办理 ───────────────────────── -->
+            <Border Classes="card">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="五、软件鉴别材料与申请办理" Classes="section" />
+                    <WrapPanel ItemWidth="300" Orientation="Horizontal">
+                        <StackPanel Margin="0,0,16,16">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="鉴别材料交存方式 *" Classes="field-label" />
+                                <Border Classes="badge info">
+                                    <TextBlock Text="官方规定选项" />
+                                </Border>
+                            </StackPanel>
+                            <ComboBox Classes="field" ItemsSource="{Binding DepositModeOptions}" SelectedItem="{Binding DepositMode}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:OptionItem">
+                                        <TextBlock Text="{Binding Label}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,16,16">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="申请办理方式 *" Classes="field-label" />
+                                <Border Classes="badge info">
+                                    <TextBlock Text="官方规定选项" />
+                                </Border>
+                            </StackPanel>
+                            <ComboBox Classes="field" ItemsSource="{Binding ApplicationHandlingOptions}" SelectedItem="{Binding ApplicationHandlingMethod}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:OptionItem">
+                                        <TextBlock Text="{Binding Label}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </StackPanel>
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+                <StackPanel Spacing="12">
+                    <TextBox Text="{Binding Note}" PlaceholderText="确认说明（可选）" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Content="保存" Command="{Binding SaveCommand}" />
+                        <Button Classes="primary" Content="保存并确认" Command="{Binding SaveAndConfirmCommand}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

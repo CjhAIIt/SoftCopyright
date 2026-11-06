@@ -1,0 +1,113 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="using:SoftCopyright.Application.Dtos"
+             xmlns:vm="using:SoftCopyright.Client.ViewModels"
+             x:Class="SoftCopyright.Client.Views.AnalysisView"
+             x:DataType="vm:AnalysisViewModel">
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Spacing="16">
+
+            <StackPanel Spacing="4">
+                <TextBlock Text="分析与证据" Classes="title" />
+                <TextBlock Classes="muted"
+                           Text="项目画像来自仓库的真实证据。标为「推断」的内容需要你确认后才会写进材料。"  TextWrapping="Wrap"/>
+            </StackPanel>
+
+            <Border Classes="card">
+                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto">
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="项目画像" Classes="section" />
+                    <Border Grid.Row="0" Grid.Column="1" Classes="badge ok" IsVisible="{Binding IsConfirmed}">
+                        <TextBlock Text="已确认" />
+                    </Border>
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                               Margin="0,10,0,0"
+                               FontSize="16" FontWeight="SemiBold"
+                               Text="{Binding ProjectName}" />
+
+                    <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,10,0,0" Spacing="6">
+                        <TextBlock Text="{Binding ProjectVersionText}" Classes="muted" />
+                        <TextBlock Text="{Binding Purpose}" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding TechnologiesText}" Classes="muted" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding EntrypointsText}" Classes="muted" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding AdaptersText}" Classes="muted" TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
+                                Orientation="Horizontal" Spacing="8" Margin="0,14,0,0">
+                        <TextBox Width="300" Text="{Binding Note}" PlaceholderText="确认说明（可选）" />
+                        <Button Classes="primary" Content="确认项目画像" Command="{Binding ConfirmCommand}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Border Classes="card" IsVisible="{Binding HasQuestions}">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="待确认事项" Classes="section" />
+                    <ItemsControl ItemsSource="{Binding Questions}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
+                                <TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,2" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card" IsVisible="{Binding HasCoverage}">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="覆盖情况" Classes="section" />
+                    <ItemsControl ItemsSource="{Binding Coverage}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="d:CoverageDto">
+                                <Grid ColumnDefinitions="140,Auto,*" Margin="0,3">
+                                    <TextBlock Grid.Column="0" Text="{Binding Dimension}" Classes="muted" />
+                                    <Border Grid.Column="1" Classes="badge ok" IsVisible="{Binding Covered}">
+                                        <TextBlock Text="已覆盖" />
+                                    </Border>
+                                    <Border Grid.Column="1" Classes="badge warn" IsVisible="{Binding !Covered}">
+                                        <TextBlock Text="未覆盖" />
+                                    </Border>
+                                    <TextBlock Grid.Column="2" Text="{Binding Detail}" Classes="muted" Margin="10,0,0,0" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card" IsVisible="{Binding HasFeatures}">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="功能清单" Classes="section" />
+                    <ItemsControl ItemsSource="{Binding Features}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:FeatureRow">
+                                <Grid ColumnDefinitions="*,Auto" Margin="0,3">
+                                    <TextBlock Grid.Column="0" Text="{Binding Name}" TextWrapping="Wrap" />
+                                    <TextBlock Grid.Column="1" Text="{Binding StatusText}" Classes="muted" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card" IsVisible="{Binding HasEvidences}">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="证据" Classes="section" />
+                    <ItemsControl ItemsSource="{Binding Evidences}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:EvidenceRow">
+                                <Grid ColumnDefinitions="*,Auto" Margin="0,2">
+                                    <TextBlock Grid.Column="0" Text="{Binding LocationText}" Classes="muted" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Type}" Classes="muted" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

@@ -1,0 +1,45 @@
+namespace SoftCopyright.Client.Services;
+
+/// <summary>
+/// 启动期共享状态。
+///
+/// 引擎与演示数据必须在 Avalonia 初始化**之前**就绪：在 UI 线程上阻塞等待异步任务
+/// 会与 Avalonia 的同步上下文死锁，因此这部分工作放到 <c>Program.Main</c>
+/// （桌面端）或 <c>MainActivity.OnCreate</c>（Android）里完成。
+/// </summary>
+public static class AppBootstrap
+{
+    /// <summary>业务引擎；启动失败时为 null。</summary>
+    public static DesktopEngine? Engine { get; set; }
+
+    /// <summary>启动失败原因。</summary>
+    public static Exception? StartupError { get; set; }
+
+    /// <summary>启动参数。</summary>
+    public static DesktopLaunchOptions Options { get; set; } = new(null, null, false, null, null, null);
+
+    /// <summary>
+    /// 准备引擎。必须在 Avalonia 初始化之前调用。
+    /// </summary>
+    /// <param name="args">命令行参数（Android 端传空数组）。</param>
+    /// <param name="dataRoot">数据目录；为空时按环境变量与系统默认位置解析。</param>
+    public static void PrepareEngine(string[] args, string? dataRoot = null)
+    {
+        Options = DesktopLaunchOptions.Parse(args);
+
+        try
+        {
+            Engine = DesktopEngine.StartAsync(args, dataRoot).GetAwaiter().GetResult();
+
+            if (Options.SeedDemo && Engine is not null)
+            {
+                var seeded = new DemoSeeder(Engine).SeedAsync().GetAwaiter().GetResult();
+                Options = Options with { CaseId = seeded };
+            }
+        }
+        catch (Exception ex)
+        {
+            StartupError = ex;
+        }
+    }
+}

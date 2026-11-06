@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" android:installLocation="auto">
+  <!--
+    端侧离线应用：只读写应用自己的数据目录，不需要网络权限，
+    也不申请存储或位置等敏感权限。
+    minSdkVersion / targetSdkVersion 由工程文件的 SupportedOSPlatformVersion 与
+    TargetPlatformVersion 决定，这里不重复声明，避免与工程设置不一致。
+  -->
+  <application android:label="知识产权申请材料工具" android:allowBackup="true" />
+</manifest>

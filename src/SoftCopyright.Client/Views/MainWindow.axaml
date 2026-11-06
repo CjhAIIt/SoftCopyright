@@ -1,0 +1,12 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:SoftCopyright.Client.ViewModels"
+        xmlns:views="using:SoftCopyright.Client.Views"
+        x:Class="SoftCopyright.Client.Views.MainWindow"
+        x:DataType="vm:ShellViewModel"
+        Title="知识产权申请材料工具（桌面版）"
+        Width="1280" Height="840"
+        MinWidth="360" MinHeight="520"
+        WindowStartupLocation="CenterScreen">
+    <views:ShellView />
+</Window>

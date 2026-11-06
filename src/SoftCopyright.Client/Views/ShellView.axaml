@@ -1,0 +1,186 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SoftCopyright.Client.ViewModels"
+             x:Class="SoftCopyright.Client.Views.ShellView"
+             x:DataType="vm:ShellViewModel">
+
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <!-- ── 顶栏 ────────────────────────────────────────────────── -->
+        <Border Grid.Row="0"
+                Background="{DynamicResource PanelBgBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="20,11"
+                ClipToBounds="True">
+            <DockPanel LastChildFill="True">
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="10">
+                    <Border Width="20" Height="20" CornerRadius="5" Background="{DynamicResource AccentBrush}" />
+                    <TextBlock Text="{Binding InstanceName}" FontSize="14.5" FontWeight="SemiBold" VerticalAlignment="Center"
+                               IsVisible="{Binding !IsCompact}" />
+                    <TextBlock Text="{Binding CompactInstanceName}" FontSize="14.5" FontWeight="SemiBold" VerticalAlignment="Center"
+                               IsVisible="{Binding IsCompact}" />
+                </StackPanel>
+
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" Margin="16,0,0,0">
+                    <Border Classes="badge info">
+                        <TextBlock Text="{Binding AiMode}" />
+                    </Border>
+                    <Button Content="模型接入"
+                            Command="{Binding ToggleAiPanelCommand}"
+                            IsVisible="{Binding !IsCompact}" />
+                    <Button Content="切换深浅主题" Command="{Binding ToggleThemeCommand}" />
+                    <Button Content="数据目录"
+                            Command="{Binding OpenDataFolderCommand}"
+                            IsVisible="{Binding !IsCompact}" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- ── 主体 ────────────────────────────────────────────────── -->
+        <DockPanel Grid.Row="1" LastChildFill="True" ClipToBounds="True">
+
+            <!-- 窄屏底部的流程导航（手机形态） -->
+            <Border DockPanel.Dock="Bottom"
+                    IsVisible="{Binding IsCompact}"
+                    Background="{DynamicResource PanelBgBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="0,1,0,0"
+                    Padding="12,8">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <Button Grid.Column="0"
+                            Content="上一步"
+                            Command="{Binding PreviousCommand}"
+                            IsEnabled="{Binding CanGoBack}" />
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding CurrentStepTitle}"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               FontWeight="SemiBold" />
+                    <Button Grid.Column="2"
+                            Classes="primary"
+                            Content="下一步"
+                            Command="{Binding NextCommand}"
+                            IsEnabled="{Binding CanGoNext}" />
+                </Grid>
+            </Border>
+
+            <!-- 侧栏 -->
+            <Border DockPanel.Dock="Left"
+                    IsVisible="{Binding !IsCompact}"
+                    Width="232"
+                    Background="{DynamicResource PanelBgBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="0,0,1,0"
+                    Padding="12">
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Spacing="4">
+
+                        <Border Classes="soft" Padding="12" Margin="0,0,0,6">
+                            <StackPanel Spacing="3">
+                                <TextBlock Text="当前案例" Classes="muted" FontSize="11.5" />
+                                <TextBlock Text="{Binding CaseDisplayName}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+
+                        <Button x:Name="CasesStep" Classes="step" Command="{Binding GoToCommand}"
+                                CommandParameter="{x:Static vm:ShellStep.Cases}">
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="案例" FontWeight="SemiBold" />
+                                <TextBlock Text="新建与选择申请案例" Classes="muted" FontSize="11" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button x:Name="ImportStep" Classes="step" Command="{Binding GoToCommand}"
+                                CommandParameter="{x:Static vm:ShellStep.Import}">
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="导入仓库" FontWeight="SemiBold" />
+                                <TextBlock Text="ZIP 压缩包或 Git 仓库" Classes="muted" FontSize="11" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button x:Name="AnalysisStep" Classes="step" Command="{Binding GoToCommand}"
+                                CommandParameter="{x:Static vm:ShellStep.Analysis}">
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="分析与证据" FontWeight="SemiBold" />
+                                <TextBlock Text="项目画像与待确认问题" Classes="muted" FontSize="11" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button x:Name="ApplicantStep" Classes="step" Command="{Binding GoToCommand}"
+                                CommandParameter="{x:Static vm:ShellStep.Applicant}">
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="申请信息" FontWeight="SemiBold" />
+                                <TextBlock Text="按官方规定填写申请表" Classes="muted" FontSize="11" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button x:Name="CodeStep" Classes="step" Command="{Binding GoToCommand}"
+                                CommandParameter="{x:Static vm:ShellStep.Code}">
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="代码材料" FontWeight="SemiBold" />
+                                <TextBlock Text="勾选纳入材料的源文件" Classes="muted" FontSize="11" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button x:Name="MaterialsStep" Classes="step" Command="{Binding GoToCommand}"
+                                CommandParameter="{x:Static vm:ShellStep.Materials}">
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="材料与导出" FontWeight="SemiBold" />
+                                <TextBlock Text="校验、生成与导出材料包" Classes="muted" FontSize="11" />
+                            </StackPanel>
+                        </Button>
+
+                        <!-- 模型接入设置 -->
+                        <Border Classes="soft" Margin="0,14,0,0" Padding="12">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="模型接入" Classes="section" />
+                                <TextBlock Classes="muted"
+                                           Text="不配置任何密钥也能完整使用：所有材料均由本地规则与仓库证据生成，不会产生外部请求。"
+                                           TextWrapping="Wrap" />
+
+                                <StackPanel Spacing="8" IsVisible="{Binding IsAiPanelOpen}">
+                                    <TextBlock Text="Base URL" Classes="field-label" />
+                                    <TextBox Text="{Binding AiBaseUrl}" PlaceholderText="https://api.example.com/v1" />
+                                    <TextBlock Text="模型名称" Classes="field-label" />
+                                    <TextBox Text="{Binding AiModel}" PlaceholderText="例如：gpt-4o-mini" />
+                                    <TextBlock Text="API 密钥" Classes="field-label" />
+                                    <TextBox Text="{Binding AiApiKey}" PasswordChar="•" PlaceholderText="仅保存在本机，密钥加密后入库" />
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <Button Classes="primary" Content="保存设置" Command="{Binding SaveAiSettingsCommand}" />
+                                        <Button Content="完全离线" Command="{Binding DisableAiCommand}" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+
+            <!-- 内容区 -->
+            <ContentControl x:Name="StepContent" Margin="22" MinWidth="0" />
+        </DockPanel>
+
+        <!-- ── 状态栏 ──────────────────────────────────────────────── -->
+        <Border Grid.Row="2"
+                Background="{DynamicResource PanelBgBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="20,8">
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10">
+                    <ProgressBar IsIndeterminate="True" Width="60" Height="4"
+                                 VerticalAlignment="Center"
+                                 IsVisible="{Binding IsBusy}" />
+                    <TextBlock Text="{Binding StatusMessage}" Classes="muted" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding ErrorMessage}" Foreground="{DynamicResource DangerBrush}"
+                               VerticalAlignment="Center" TextWrapping="Wrap"
+                               IsVisible="{Binding HasError}" />
+                </StackPanel>
+                <TextBlock Grid.Column="1" Text="{Binding DataRoot}" Classes="muted" VerticalAlignment="Center"
+                           IsVisible="{Binding !IsCompact}" />
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

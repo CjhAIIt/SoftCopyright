@@ -21,7 +21,7 @@
     <ProjectReference Include="..\..\src\SoftCopyright.Documents\SoftCopyright.Documents.csproj" />
     <ProjectReference Include="..\..\src\SoftCopyright.Infrastructure\SoftCopyright.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\SoftCopyright.Api\SoftCopyright.Api.csproj" />
-    <ProjectReference Include="..\..\src\SoftCopyright.Desktop\SoftCopyright.Desktop.csproj" />
+    <ProjectReference Include="..\..\src\SoftCopyright.Client\SoftCopyright.Client.csproj" />
   </ItemGroup>
 
   <ItemGroup>

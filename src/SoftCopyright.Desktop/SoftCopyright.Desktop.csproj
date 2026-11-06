@@ -2,41 +2,23 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
-    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
-    <!-- 桌面端三平台发布目标：Windows / macOS / Linux -->
-    <RuntimeIdentifiers>win-x64;win-arm64;linux-x64;linux-arm64;osx-x64;osx-arm64</RuntimeIdentifiers>
     <SelfContained>false</SelfContained>
     <PublishTrimmed>false</PublishTrimmed>
     <PublishSingleFile>false</PublishSingleFile>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
-    <!--
-      AVLN3001：MainWindow 只能用带参构造函数创建（视图模型由组合根注入），
-      因此它不能通过 XAML 运行时加载器实例化——这正是期望的行为。
-    -->
-    <NoWarn>$(NoWarn);AVLN3001</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Avalonia" />
     <PackageReference Include="Avalonia.Desktop" />
-    <PackageReference Include="Avalonia.Fonts.Inter" />
-    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <!-- 开发期可视化调试器（仅 Debug） -->
     <PackageReference Include="AvaloniaUI.DiagnosticsSupport" Condition="'$(Configuration)' == 'Debug'">
       <IncludeAssets>all</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="CommunityToolkit.Mvvm" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\SoftCopyright.AI\SoftCopyright.AI.csproj" />
-    <ProjectReference Include="..\SoftCopyright.Application\SoftCopyright.Application.csproj" />
-    <ProjectReference Include="..\SoftCopyright.Documents\SoftCopyright.Documents.csproj" />
-    <ProjectReference Include="..\SoftCopyright.Infrastructure\SoftCopyright.Infrastructure.csproj" />
-    <ProjectReference Include="..\SoftCopyright.ProjectScan\SoftCopyright.ProjectScan.csproj" />
+    <ProjectReference Include="..\SoftCopyright.Client\SoftCopyright.Client.csproj" />
   </ItemGroup>
 
   <ItemGroup>

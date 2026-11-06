@@ -18,19 +18,19 @@
 
 ---
 
-## 〇、两种形态：Web 端与桌面端
+## 〇、两种形态：Web 端与原生客户端
 
-| | Web 端 | 桌面端（端侧离线） |
+| | Web 端 | 原生客户端（端侧离线） |
 |---|---|---|
 | 形态 | ASP.NET Core 10 + Blazor Web App，浏览器访问 | Avalonia 12 + .NET 10 原生程序 |
-| 数据在哪 | 服务器上的 MySQL | **本机** SQLite（`%LOCALAPPDATA%\SoftCopyright`） |
+| 数据在哪 | 服务器上的 MySQL | **本机** SQLite（Windows: `%LOCALAPPDATA%\SoftCopyright`） |
 | 要不要服务器 | 要 | **不要**，装上就能用，断网也能用 |
 | 账号 | 注册 / 登录 / 管理员后台 | 单用户（本机内置管理员，无登录页） |
-| 平台 | Windows / macOS / Linux 浏览器 | Windows / macOS / Linux 原生程序；Android / iOS 后续；**鸿蒙本期不做** |
+| 平台 | Windows / macOS / Linux 浏览器 | Windows / macOS / Linux 桌面；Android 已产出 APK；iOS 待签名；**鸿蒙本期不做** |
 | 适合 | 多人协作、服务器集中管理、随时随地用 | 单机离线作业、材料不出本机 |
 
 **两者共用同一套业务引擎**（`Domain / Application / Infrastructure / AI / Documents / ProjectScan` 都不依赖 ASP.NET），
-校验规则、材料生成器、选项目录只有一份实现，桌面端不是"把 Web 再写一遍"。
+校验规则、材料生成器、选项目录只有一份实现，客户端不是"把 Web 再写一遍"。
 
 ```powershell
 # 桌面端：开发运行
@@ -39,11 +39,17 @@ dotnet run --project src/SoftCopyright.Desktop
 # 生成演示案例并打开申请信息页
 dotnet run --project src/SoftCopyright.Desktop -- --demo --step Applicant
 
+# 按手机尺寸开窗，检查窄屏布局
+dotnet run --project src/SoftCopyright.Desktop -- --size 390x844
+
 # 发布 Windows 自包含程序（目标机器不需要装 .NET）
 ./scripts/publish-desktop.ps1 -Platform windows
+
+# 发布 Android APK（需先 dotnet workload install android）
+./scripts/build-mobile.ps1
 ```
 
-详见 [`docs/桌面端说明.md`](docs/桌面端说明.md)。
+详见 [`docs/客户端说明.md`](docs/客户端说明.md)。
 
 ---
 
@@ -265,15 +271,17 @@ SoftCopyright/
 │   ├── SoftCopyright.Infrastructure/  # EF Core、MySQL、文件存储、后台任务、密码派生与密钥保护
 │   ├── SoftCopyright.Api/             # Minimal API 端点 + Cookie 认证 + Blazor 宿主 + 健康检查
 │   ├── SoftCopyright.Web/             # Blazor 工作台界面（Razor 类库）：入口页、登录注册、引导、两条工作区
-│   └── SoftCopyright.Desktop/         # Avalonia 桌面端（端侧离线）：Windows / macOS / Linux
+│   ├── SoftCopyright.Client/          # 原生客户端共享层：界面（MVVM）+ 端侧引擎组合根
+│   ├── SoftCopyright.Desktop/         # 桌面端宿主（Windows / macOS / Linux）
+│   └── SoftCopyright.Mobile/          # Android 宿主（与桌面端共用同一份界面源码）
 ├── tests/SoftCopyright.Tests/         # 单元 + 集成测试、合成 fixture
-├── scripts/                           # 发布与辅助脚本（桌面端发布、安装包、窗口截图）
-├── docs/                              # 架构说明 / 安全设计 / 材料规则说明 / 状态机与确认门禁 / 桌面端说明
+├── scripts/                           # 发布与辅助脚本（客户端发布、Android 打包、窗口截图）
+├── docs/                              # 架构说明 / 安全设计 / 材料规则说明 / 状态机与确认门禁 / 客户端说明
 └── samples/                           # 手工验收用的合成示例仓库
 ```
 
 依赖方向严格单向：`Domain ← Application ← Infrastructure ← Api`，`Web` 只依赖 `Application` 的 DTO，界面通过真实 HTTP 调用 API。
-`Desktop` 直接引用引擎层（`Application / Infrastructure / AI / Documents / ProjectScan`），进程内调用，不经过 HTTP。
+`Client` 直接引用引擎层（`Application / Infrastructure / AI / Documents / ProjectScan`），进程内调用，不经过 HTTP。
 
 ### 两条流程在代码里如何分开
 
@@ -492,7 +500,7 @@ $env:SOFTCOPYRIGHT_AI_APIKEY = "sk-..."
 |---|---|
 | [`docs/架构说明.md`](docs/架构说明.md) | 分层、模块职责、端到端数据流 |
 | [`docs/安全设计.md`](docs/安全设计.md) | ZIP 威胁模型、不可信输入处理、凭据策略 |
-| [`docs/桌面端说明.md`](docs/桌面端说明.md) | 桌面端（端侧离线）架构、平台覆盖、运行与打包 |
+| [`docs/客户端说明.md`](docs/客户端说明.md) | 原生客户端（桌面 + Android）架构、平台覆盖、运行与打包 |
 | [`docs/材料规则说明.md`](docs/材料规则说明.md) | 规则版本、字段清单、页数与行数策略 |
 | [`docs/软著申请字段规范.md`](docs/软著申请字段规范.md) | 官方申请表里的选项型字段、条件必填与跨字段约束 |
 | [`docs/状态机与确认门禁.md`](docs/状态机与确认门禁.md) | 状态迁移、确认哈希与失效级联 |

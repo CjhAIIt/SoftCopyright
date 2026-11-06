@@ -1,6 +1,6 @@
 using SoftCopyright.Application;
 using SoftCopyright.Application.Dtos;
-using SoftCopyright.Desktop.Services;
+using SoftCopyright.Client.Services;
 using SoftCopyright.Domain;
 using SoftCopyright.Domain.Contracts;
 using SoftCopyright.Tests.Fixtures;
@@ -161,7 +161,7 @@ public sealed class DesktopEngineTests
         var options = DesktopLaunchOptions.Parse(["--case", caseId.ToString(), "--step", "Applicant"]);
 
         Assert.Equal(caseId, options.CaseId);
-        Assert.Equal(SoftCopyright.Desktop.ViewModels.ShellStep.Applicant, options.Step);
+        Assert.Equal(SoftCopyright.Client.ViewModels.ShellStep.Applicant, options.Step);
         Assert.False(options.SeedDemo);
 
         // 无法识别的参数一律忽略，不阻断启动。
@@ -179,7 +179,7 @@ public sealed class DesktopEngineTests
         using var temp = new TestTempDirectory("sc-desktop");
         await using var engine = await DesktopEngine.StartAsync([], temp.Path);
 
-        var seeder = new SoftCopyright.Desktop.Services.DemoSeeder(engine);
+        var seeder = new SoftCopyright.Client.Services.DemoSeeder(engine);
         var caseId = await seeder.SeedAsync();
 
         var info = await engine.GetApplicantAsync(caseId, default);
