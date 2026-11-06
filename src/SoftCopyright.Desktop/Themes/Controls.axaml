@@ -1,0 +1,240 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- ── 基础外观 ─────────────────────────────────────────────────────── -->
+  <Style Selector="Window">
+    <Setter Property="Background" Value="{DynamicResource AppBgBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+    <Setter Property="FontFamily" Value="Inter, Microsoft YaHei UI, PingFang SC, Noto Sans CJK SC, Noto Sans SC, sans-serif" />
+    <Setter Property="FontSize" Value="13.5" />
+  </Style>
+
+  <Style Selector="TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+  </Style>
+
+  <Style Selector="TextBlock.muted">
+    <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+    <Setter Property="FontSize" Value="12.5" />
+  </Style>
+
+  <Style Selector="TextBlock.title">
+    <Setter Property="FontSize" Value="21" />
+    <Setter Property="FontWeight" Value="Bold" />
+  </Style>
+
+  <Style Selector="TextBlock.section">
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+
+  <Style Selector="TextBlock.field-label">
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="Margin" Value="0,0,0,5" />
+  </Style>
+
+  <Style Selector="TextBlock.required">
+    <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+    <Setter Property="FontWeight" Value="Bold" />
+  </Style>
+
+  <!-- ── 输入控件 ─────────────────────────────────────────────────────── -->
+  <Style Selector="TextBox">
+    <Setter Property="Background" Value="{DynamicResource PanelBgBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderStrongBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Padding" Value="9,7" />
+    <Setter Property="MinHeight" Value="34" />
+  </Style>
+
+  <Style Selector="TextBox:focus">
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+  </Style>
+
+  <!-- 表单控件宽度上限：否则控件的期望宽度会把所在栅格列撑出窗口。 -->
+  <Style Selector="TextBox.field, ComboBox.field">
+    <Setter Property="MaxWidth" Value="320" />
+  </Style>
+
+  <Style Selector="ComboBox">
+    <Setter Property="Background" Value="{DynamicResource PanelBgBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderStrongBrush}" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="MinHeight" Value="34" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+  </Style>
+
+  <!-- ── 按钮 ─────────────────────────────────────────────────────────── -->
+  <Style Selector="Button">
+    <Setter Property="Background" Value="{DynamicResource PanelBgBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderStrongBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Padding" Value="14,7" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+
+  <Style Selector="Button:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+    <Setter Property="TextBlock.Foreground" Value="{DynamicResource AccentBrush}" />
+  </Style>
+
+  <Style Selector="Button.primary">
+    <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+  </Style>
+
+  <Style Selector="Button.primary:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="TextBlock.Foreground" Value="{DynamicResource AccentTextBrush}" />
+  </Style>
+
+  <Style Selector="Button.danger">
+    <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource DangerBorderBrush}" />
+  </Style>
+
+  <Style Selector="Button:disabled">
+    <Setter Property="Opacity" Value="0.5" />
+  </Style>
+
+  <!-- ── 面板 ─────────────────────────────────────────────────────────── -->
+  <Style Selector="Border.card">
+    <Setter Property="Background" Value="{DynamicResource PanelBgBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Padding" Value="18" />
+  </Style>
+
+  <Style Selector="Border.soft">
+    <Setter Property="Background" Value="{DynamicResource PanelAltBgBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Padding" Value="14" />
+  </Style>
+
+  <!-- ── 提示条 ───────────────────────────────────────────────────────── -->
+  <Style Selector="Border.alert">
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Padding" Value="12,10" />
+  </Style>
+
+  <Style Selector="Border.alert.info">
+    <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBorderBrush}" />
+  </Style>
+
+  <Style Selector="Border.alert.ok">
+    <Setter Property="Background" Value="{DynamicResource OkSoftBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource OkBorderBrush}" />
+  </Style>
+
+  <Style Selector="Border.alert.warn">
+    <Setter Property="Background" Value="{DynamicResource WarnSoftBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource WarnBorderBrush}" />
+  </Style>
+
+  <Style Selector="Border.alert.danger">
+    <Setter Property="Background" Value="{DynamicResource DangerSoftBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource DangerBorderBrush}" />
+  </Style>
+
+  <!-- ── 徽标 ─────────────────────────────────────────────────────────── -->
+  <Style Selector="Border.badge">
+    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="Padding" Value="8,2" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <Style Selector="Border.badge.info">
+    <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBorderBrush}" />
+  </Style>
+
+  <Style Selector="Border.badge.ok">
+    <Setter Property="Background" Value="{DynamicResource OkSoftBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource OkBorderBrush}" />
+  </Style>
+
+  <Style Selector="Border.badge.warn">
+    <Setter Property="Background" Value="{DynamicResource WarnSoftBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource WarnBorderBrush}" />
+  </Style>
+
+  <Style Selector="Border.badge.danger">
+    <Setter Property="Background" Value="{DynamicResource DangerSoftBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource DangerBorderBrush}" />
+  </Style>
+
+  <Style Selector="Border.badge.info TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="FontSize" Value="11.5" />
+  </Style>
+
+  <Style Selector="Border.badge.ok TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource OkBrush}" />
+    <Setter Property="FontSize" Value="11.5" />
+  </Style>
+
+  <Style Selector="Border.badge.warn TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource WarnBrush}" />
+    <Setter Property="FontSize" Value="11.5" />
+  </Style>
+
+  <Style Selector="Border.badge.danger TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+    <Setter Property="FontSize" Value="11.5" />
+  </Style>
+
+  <!-- ── 侧栏步骤 ─────────────────────────────────────────────────────── -->
+  <Style Selector="Button.step">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="12,9" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Left" />
+    <Setter Property="CornerRadius" Value="7" />
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+  </Style>
+
+  <Style Selector="Button.step:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource PanelAltBgBrush}" />
+    <Setter Property="TextBlock.Foreground" Value="{DynamicResource TextBrush}" />
+  </Style>
+
+  <Style Selector="Button.step.active">
+    <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+  </Style>
+
+  <Style Selector="Button.step.active:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+    <Setter Property="TextBlock.Foreground" Value="{DynamicResource AccentBrush}" />
+  </Style>
+
+  <!-- ── 列表 ─────────────────────────────────────────────────────────── -->
+  <Style Selector="ListBox">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+
+  <Style Selector="ListBoxItem">
+    <Setter Property="Padding" Value="8,6" />
+  </Style>
+
+  <!-- ── 滚动条 ───────────────────────────────────────────────────────── -->
+  <Style Selector="ScrollViewer">
+    <Setter Property="HorizontalScrollBarVisibility" Value="Disabled" />
+  </Style>
+
+</Styles>

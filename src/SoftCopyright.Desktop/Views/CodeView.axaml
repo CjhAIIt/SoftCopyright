@@ -1,0 +1,98 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SoftCopyright.Desktop.ViewModels"
+             x:Class="SoftCopyright.Desktop.Views.CodeView"
+             x:DataType="vm:CodeViewModel">
+    <Grid RowDefinitions="Auto,Auto,*">
+
+        <StackPanel Grid.Row="0" Spacing="4">
+            <TextBlock Text="代码材料" Classes="title" />
+            <TextBlock Classes="muted"
+                       Text="材料中的每一行代码都逐行摘自这里勾选的真实源文件，并保留路径与 SHA-256，可回溯核对。"  TextWrapping="Wrap"/>
+        </StackPanel>
+
+        <Border Grid.Row="1" Classes="card" Margin="0,12,0,12">
+            <Grid ColumnDefinitions="*,Auto,Auto">
+                <TextBox Grid.Column="0"
+                         Text="{Binding Filter}"
+                         PlaceholderText="按路径筛选" />
+                <TextBlock Grid.Column="1"
+                           Margin="12,0,0,0"
+                           VerticalAlignment="Center"
+                           Classes="muted"
+                           Text="{Binding SelectedCountText}" />
+                <Button Grid.Column="2"
+                        Margin="12,0,0,0"
+                        Content="保存并确认"
+                        Classes="primary"
+                        Command="{Binding SaveAndConfirmCommand}" />
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="2" ColumnDefinitions="*,*">
+
+            <Border Grid.Column="0" Classes="card" Margin="0,0,10,0">
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Spacing="4">
+                        <ItemsControl ItemsSource="{Binding VisibleCandidates}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:CodeRow">
+                                    <Border Classes="soft" Margin="0,0,0,6" Padding="12">
+                                        <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto">
+                                            <CheckBox Grid.Row="0" Grid.RowSpan="2"
+                                                      Grid.Column="0"
+                                                      IsChecked="{Binding IsSelected}"
+                                                      VerticalAlignment="Center"
+                                                      Margin="0,0,10,0" />
+                                            <TextBlock Grid.Row="0" Grid.Column="1"
+                                                       Text="{Binding RelativePath}"
+                                                       FontSize="13" />
+                                            <TextBlock Grid.Row="1" Grid.Column="1"
+                                                       Text="{Binding ShortHash}"
+                                                       Classes="muted"
+                                                       FontSize="11"
+                                                       Margin="0,3,0,0" />
+                                            <TextBlock Grid.Row="0" Grid.RowSpan="2" Grid.Column="2"
+                                                       VerticalAlignment="Center"
+                                                       Margin="10,0,0,0">
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <TextBlock Text="{Binding LinesText}" Classes="muted" />
+                                                    <Button Content="预览" Command="{Binding PreviewCommand}" />
+                                                </StackPanel>
+                                            </TextBlock>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <TextBlock Classes="muted"
+                                   Text="没有可纳入材料的源文件，请先完成扫描。"
+                                   IsVisible="{Binding !Candidates.Count}"  TextWrapping="Wrap"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+
+            <Border Grid.Column="1" Classes="card" Margin="10,0,0,0">
+                <Grid RowDefinitions="Auto,*">
+                    <TextBlock Grid.Row="0"
+                               Text="{Binding PreviewPath}"
+                               Classes="section"
+                               Margin="0,0,0,8" />
+                    <Border Grid.Row="1"
+                            Background="{DynamicResource PanelAltBgBrush}"
+                            CornerRadius="8"
+                            Padding="12">
+                        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+                            <TextBlock Text="{Binding Preview}"
+                                       FontFamily="Consolas, Menlo, monospace"
+                                       FontSize="12"
+                                       TextWrapping="NoWrap" />
+                        </ScrollViewer>
+                    </Border>
+                </Grid>
+            </Border>
+
+        </Grid>
+    </Grid>
+</UserControl>

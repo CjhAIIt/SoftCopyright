@@ -1,6 +1,7 @@
 # 知识产权申请材料工具 · AI 协作入口
 
-面向**任意代码仓库**的软件著作权申请材料准备工具。ASP.NET Core 10 + Blazor Web App + MySQL 8.0。
+面向**任意代码仓库**的软件著作权申请材料准备工具。ASP.NET Core 10 + Blazor Web App + MySQL 8.0，
+另有 Avalonia 桌面端（Windows / macOS / Linux，**端侧离线**，不需要服务器）。
 
 ## 快速上手
 
@@ -8,6 +9,7 @@
 dotnet build
 dotnet test
 dotnet run --project src/SoftCopyright.Api     # http://localhost:5080
+dotnet run --project src/SoftCopyright.Desktop  # 桌面端（端侧离线）
 ```
 
 MySQL 连接串通过环境变量 `SOFTCOPYRIGHT_MYSQL` 或 user-secrets 提供，**禁止写进仓库**。
@@ -26,6 +28,8 @@ MySQL 连接串通过环境变量 `SOFTCOPYRIGHT_MYSQL` 或 user-secrets 提供�
 ## 架构与约定
 
 - 依赖方向单向：`Domain ← Application ← Infrastructure ← Api`；`Web` 只依赖 `Application` 的 DTO，界面通过真实 HTTP 调用 API。
+  `Desktop` 是**另一种宿主**：直接引用引擎层，进程内调用，不经过 HTTP。
+- **引擎层不得引入 ASP.NET 依赖**——桌面端复用引擎的前提。`DesktopEngine` 是端侧组合根。
 - 跨模块协作走 `Domain` 中的接口契约（`IProjectScanService`、`IProjectAnalyzer`、`IMaterialDocumentGenerator` 等），实现放各自模块。
 - 事实与证据分离存储：申请人确认数据在 `ApplicantInfo`，模型推断在 `ProjectAnalysis.ProfileJson`，互不覆盖。
 - 确认内容用**哈希**判定失效，不手工维护失效规则；上游改动自动传导到下游。
@@ -57,9 +61,19 @@ dotnet test      # 必须全绿
 ## 当前未实现（不要假装存在）
 
 - PDF 渲染（MVP 不产出 PDF，材料包只含 DOCX/TXT/JSON/HTML/ZIP）
-- GitHub / GitLab 授权接入、桌面端本地扫描
+- GitHub / GitLab 授权接入
 - 官方系统自动提交、验证码、电子签章
 - 组织/角色/审批/计费、多 Agent 自主改写申请事实
+- **鸿蒙端**：鸿蒙 NEXT 没有 .NET 运行时，需要独立 ArkTS 工程与签名链，本期不做
+- **iOS 安装包**：需要在 macOS 上用 Xcode 签名，Windows 上产出不了
+- 桌面端的专利线界面（引擎已就绪，界面未做）
+
+## 桌面端的两个坑（不要再踩）
+
+1. **不要在 UI 线程上阻塞等待异步任务**。Avalonia 的同步上下文会让 `.GetAwaiter().GetResult()` 死锁。
+   引擎启动放在 `Program.Main`（Avalonia 初始化之前），切页刷新用 `Dispatcher.UIThread.Post`。
+2. **先迁移数据库，再启动后台任务**。`BackgroundJobWorker` 一上来就查任务表，库还没迁移会报
+   `no such table: BackgroundJobs`。顺序写在 `DesktopEngine.StartAsync` 里。
 
 ## 文档
 
@@ -67,3 +81,5 @@ dotnet test      # 必须全绿
 - `docs/安全设计.md`：ZIP 威胁模型、不可信输入、凭据策略
 - `docs/材料规则说明.md`：规则版本、字段清单、页数与行数策略
 - `docs/状态机与确认门禁.md`：状态迁移、确认哈希与失效级联
+- `docs/软著申请字段规范.md`：官方申请表里的选项型字段、条件必填与跨字段约束
+- `docs/桌面端说明.md`：桌面端架构、平台覆盖、运行与打包

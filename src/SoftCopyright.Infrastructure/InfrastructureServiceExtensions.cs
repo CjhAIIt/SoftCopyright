@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -101,6 +102,12 @@ public static class InfrastructureServiceExtensions
                 Directory.CreateDirectory(dataRoot);
                 var connectionString = configuration.GetConnectionString("Sqlite")
                                        ?? $"Data Source={Path.Combine(dataRoot, "softcopyright.db")}";
+
+                // 迁移快照是按 MySQL 提供程序生成的，里面记录的是 MySQL 的默认类型映射。
+                // 换到 SQLite 后逐项比对必然出现差异——这是提供程序差异，不是真实的结构变更。
+                // SQLite 的类型系统更宽松，同一套迁移脚本可以直接套用，因此这里只在该分支关闭告警。
+                options.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
+
                 options.UseSqlite(connectionString);
                 return;
             }
