@@ -276,7 +276,7 @@ SoftCopyright/
 │   └── SoftCopyright.Mobile/          # Android 宿主（与桌面端共用同一份界面源码）
 ├── tests/SoftCopyright.Tests/         # 单元 + 集成测试、合成 fixture
 ├── scripts/                           # 发布与辅助脚本（客户端发布、Android 打包、窗口截图）
-├── docs/                              # 架构说明 / 安全设计 / 材料规则说明 / 状态机与确认门禁 / 客户端说明
+├── docs/                              # 开发指南 / 架构说明 / API 参考 / 安全设计 / 材料规则 / 状态机 / 客户端说明
 └── samples/                           # 手工验收用的合成示例仓库
 ```
 
@@ -498,8 +498,10 @@ $env:SOFTCOPYRIGHT_AI_APIKEY = "sk-..."
 
 | 文档 | 内容 |
 |---|---|
+| [`docs/开发指南.md`](docs/开发指南.md) | 环境要求、数据库、常用命令、工程导航、常见坑、如何新增平台 |
 | [`docs/架构说明.md`](docs/架构说明.md) | 分层、模块职责、端到端数据流 |
-| [`docs/安全设计.md`](docs/安全设计.md) | ZIP 威胁模型、不可信输入处理、凭据策略 |
+| [`docs/API参考.md`](docs/API参考.md) | Web 端全部端点、错误码、客户端与 API 的对应关系 |
+| [`docs/安全设计.md`](docs/安全设计.md) | ZIP 威胁模型、不可信输入处理、凭据策略、客户端安全姿态 |
 | [`docs/客户端说明.md`](docs/客户端说明.md) | 原生客户端（桌面 + Android）架构、平台覆盖、运行与打包 |
 | [`docs/材料规则说明.md`](docs/材料规则说明.md) | 规则版本、字段清单、页数与行数策略 |
 | [`docs/软著申请字段规范.md`](docs/软著申请字段规范.md) | 官方申请表里的选项型字段、条件必填与跨字段约束 |
