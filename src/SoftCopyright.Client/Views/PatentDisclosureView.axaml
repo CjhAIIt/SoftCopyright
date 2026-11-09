@@ -1,0 +1,163 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SoftCopyright.Client.ViewModels"
+             x:Class="SoftCopyright.Client.Views.PatentDisclosureView"
+             x:DataType="vm:PatentDisclosureViewModel">
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Spacing="16">
+
+            <StackPanel Spacing="4">
+                <TextBlock Text="专利交底书" Classes="title" />
+                <TextBlock Classes="muted"
+                           Text="技术交底书是专利申请文件的唯一真源：摘要、权利要求书与说明书都由它派生。保护范围、新颖性与创造性必须由专利代理人复核，工具不代为判断。"
+                           TextWrapping="Wrap" />
+            </StackPanel>
+
+            <Border Classes="alert info">
+                <TextBlock Classes="muted"
+                           Text="「技术方案」用「；」分隔技术特征；「现有技术」必须注明来源，缺失来源会被列为需申请人处理。"
+                           TextWrapping="Wrap" />
+            </Border>
+
+            <!-- ── 一、发明信息 ─────────────────────────────────────── -->
+            <Border Classes="card">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="一、发明信息" Classes="section" />
+
+                    <WrapPanel ItemWidth="300" Orientation="Horizontal">
+                        <StackPanel Margin="0,0,16,16">
+                            <TextBlock Text="发明名称 *" Classes="field-label" />
+                            <TextBox Classes="field" Text="{Binding Title}" PlaceholderText="例如：一种多主题桌面客户端渲染方法" />
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,16,16">
+                            <TextBlock Text="专利类型 *" Classes="field-label" />
+                            <ComboBox Classes="field" ItemsSource="{Binding PatentTypeOptions}" SelectedItem="{Binding PatentType}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:OptionItem">
+                                        <TextBlock Text="{Binding Label}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,16,16">
+                            <TextBlock Text="申请人 *" Classes="field-label" />
+                            <TextBox Classes="field" Text="{Binding ApplicantName}" PlaceholderText="姓名或名称" />
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,16,16">
+                            <TextBlock Text="发明人 *" Classes="field-label" />
+                            <TextBox Classes="field" Text="{Binding InventorNames}" PlaceholderText="多人用「、」分隔" />
+                        </StackPanel>
+                    </WrapPanel>
+
+                    <TextBlock Text="技术领域 *" Classes="field-label" Margin="0,6,0,0" />
+                    <TextBox Text="{Binding TechnicalField}" AcceptsReturn="True" Height="72" TextWrapping="Wrap"
+                             PlaceholderText="本发明所属的技术领域，如：软件工程 / 人机交互" />
+                </StackPanel>
+            </Border>
+
+            <!-- ── 二、技术内容 ─────────────────────────────────────── -->
+            <Border Classes="card">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="二、技术内容" Classes="section" />
+
+                    <TextBlock Text="背景技术 *" Classes="field-label" />
+                    <TextBox Text="{Binding BackgroundTechnology}" AcceptsReturn="True" Height="88" TextWrapping="Wrap"
+                             PlaceholderText="现有技术及其所存在的技术问题" />
+
+                    <TextBlock Text="技术问题 *" Classes="field-label" Margin="0,6,0,0" />
+                    <TextBox Text="{Binding ProblemStatement}" AcceptsReturn="True" Height="72" TextWrapping="Wrap"
+                             PlaceholderText="本发明要解决的技术问题" />
+
+                    <TextBlock Text="技术方案 *" Classes="field-label" Margin="0,6,0,0" />
+                    <TextBox Text="{Binding TechnicalSolution}" AcceptsReturn="True" Height="120" TextWrapping="Wrap"
+                             PlaceholderText="用「；」分隔技术特征，逐条描述必要技术特征" />
+                    <TextBlock Classes="muted" FontSize="11.5" Margin="0,4,0,0"
+                               Text="权利要求由这里的特征派生，请逐条写清，避免使用「等」「之类」等概括词。"
+                               TextWrapping="Wrap" />
+
+                    <TextBlock Text="有益效果 *" Classes="field-label" Margin="0,6,0,0" />
+                    <TextBox Text="{Binding BeneficialEffects}" AcceptsReturn="True" Height="88" TextWrapping="Wrap"
+                             PlaceholderText="相对现有技术带来的效果" />
+
+                    <TextBlock Text="附图说明" Classes="field-label" Margin="0,6,0,0" />
+                    <TextBox Text="{Binding DrawingDescription}" AcceptsReturn="True" Height="72" TextWrapping="Wrap"
+                             PlaceholderText="例如：图 1 为整体流程图；图 2 为界面布局示意图" />
+                    <TextBlock Classes="muted" FontSize="11.5" Margin="0,4,0,0"
+                               Text="工具不生成附图，附图与图号需由申请人补充。"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <!-- ── 三、现有技术 ─────────────────────────────────────── -->
+            <Border Classes="card">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="三、现有技术" Classes="section" />
+
+                    <TextBlock Text="现有技术描述" Classes="field-label" />
+                    <TextBox Text="{Binding PriorArt}" AcceptsReturn="True" Height="88" TextWrapping="Wrap"
+                             PlaceholderText="申请人已知的最接近的现有技术" />
+
+                    <TextBlock Text="现有技术来源 *" Classes="field-label" Margin="0,6,0,0" />
+                    <TextBox Text="{Binding PriorArtSources}" AcceptsReturn="True" Height="72" TextWrapping="Wrap"
+                             PlaceholderText="注明来源，如：专利号、文献名或公开日期" />
+                    <TextBlock Classes="muted" FontSize="11.5" Margin="0,4,0,0"
+                               Text="现有技术必须注明来源；工具不代为检索现有技术，也不会编造对比文件编号。"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <!-- ── 生成结果 ─────────────────────────────────────────── -->
+            <Border Classes="card" IsVisible="{Binding HasAbstract}">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="摘要" Classes="section" />
+                    <TextBlock Text="{Binding Abstract}" TextWrapping="Wrap" />
+                    <TextBlock Classes="muted" FontSize="11.5"
+                               Text="摘要长度上限 300 字，由本地校验器复核。"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card" IsVisible="{Binding HasClaims}">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="权利要求" Classes="section" />
+                    <ItemsControl ItemsSource="{Binding Claims}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ClaimRow">
+                                <Border Classes="soft" Margin="0,0,0,6" Padding="12">
+                                    <StackPanel Spacing="4">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Text="{Binding HeaderText}" FontWeight="SemiBold" FontSize="13" />
+                                            <TextBlock Text="{Binding DependsText}" Classes="muted" FontSize="11.5" />
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding Text}" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Classes="muted" FontSize="11.5"
+                               Text="权利要求的编号与引用关系由规则引擎确定；请核对技术特征是否被完整写入，未写入的特征不会出现在权利要求中。"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+                <StackPanel Spacing="12">
+                    <TextBox Text="{Binding Note}" PlaceholderText="确认说明（可选）" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Content="保存" Command="{Binding SaveCommand}" />
+                        <Button Content="保存并生成草稿" Command="{Binding SaveAndDraftCommand}" />
+                        <Button Classes="primary" Content="确认草稿" Command="{Binding ConfirmDraftCommand}" />
+                    </StackPanel>
+                    <TextBlock Classes="muted" FontSize="11.5"
+                               Text="确认草稿后才能生成专利申请文件；确认后再修改交底书，已生成的材料会标记为失效，需重新生成。"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

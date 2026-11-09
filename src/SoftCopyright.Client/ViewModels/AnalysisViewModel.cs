@@ -80,9 +80,14 @@ public sealed partial class AnalysisViewModel : ObservableObject, IRefreshable
                 string.IsNullOrWhiteSpace(Note) ? "在桌面端确认项目画像" : Note,
                 CancellationToken.None);
 
-            _shell.StatusMessage = "项目画像已确认，可以继续填写申请信息。";
+            _shell.StatusMessage = _shell.IsPatentFlow
+                ? "项目画像已确认，可以继续填写技术交底书。"
+                : "项目画像已确认，可以继续填写申请信息。";
+
             await RefreshAsync();
-            await _shell.GoToAsync(ShellStep.Applicant);
+
+            // 专利线没有申请表，画像确认后进入技术交底书；软著线进入申请信息。
+            await _shell.GoToAsync(_shell.IsPatentFlow ? ShellStep.PatentDisclosure : ShellStep.Applicant);
         });
     }
 

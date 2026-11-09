@@ -79,22 +79,16 @@ public sealed partial class ShellView : UserControl
 
     private void UpdateStepStates()
     {
-        if (_shell is null)
+        // 步骤按钮的激活态由 ItemsControl 模板里的 Classes.active 绑定驱动，
+        // 这里只需要在步骤集合重建后重新计算一次绑定源状态。
+        _shell?.Steps.ToList().ForEach(step =>
         {
-            return;
-        }
-
-        ApplyStepState(CasesStep, _shell.Steps[0]);
-        ApplyStepState(ImportStep, _shell.Steps[1]);
-        ApplyStepState(AnalysisStep, _shell.Steps[2]);
-        ApplyStepState(ApplicantStep, _shell.Steps[3]);
-        ApplyStepState(CodeStep, _shell.Steps[4]);
-        ApplyStepState(MaterialsStep, _shell.Steps[5]);
-    }
-
-    private static void ApplyStepState(Button button, StepItem step)
-    {
-        button.Classes.Set("active", step.IsActive);
+            var active = step.Step == _shell.CurrentStep;
+            if (step.IsActive != active)
+            {
+                step.IsActive = active;
+            }
+        });
     }
 
     private void ShowStep(ShellStep step)
@@ -111,6 +105,7 @@ public sealed partial class ShellView : UserControl
             ShellStep.Analysis => new AnalysisView { DataContext = _shell.Analysis },
             ShellStep.Applicant => new ApplicantView { DataContext = _shell.Applicant },
             ShellStep.Code => new CodeView { DataContext = _shell.Code },
+            ShellStep.PatentDisclosure => new PatentDisclosureView { DataContext = _shell.PatentDisclosure },
             ShellStep.Materials => new MaterialsView { DataContext = _shell.Materials },
             _ => null
         };

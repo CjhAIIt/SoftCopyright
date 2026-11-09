@@ -83,53 +83,23 @@
                             </StackPanel>
                         </Border>
 
-                        <Button x:Name="CasesStep" Classes="step" Command="{Binding GoToCommand}"
-                                CommandParameter="{x:Static vm:ShellStep.Cases}">
-                            <StackPanel Spacing="2">
-                                <TextBlock Text="案例" FontWeight="SemiBold" />
-                                <TextBlock Text="新建与选择申请案例" Classes="muted" FontSize="11" />
-                            </StackPanel>
-                        </Button>
-
-                        <Button x:Name="ImportStep" Classes="step" Command="{Binding GoToCommand}"
-                                CommandParameter="{x:Static vm:ShellStep.Import}">
-                            <StackPanel Spacing="2">
-                                <TextBlock Text="导入仓库" FontWeight="SemiBold" />
-                                <TextBlock Text="ZIP 压缩包或 Git 仓库" Classes="muted" FontSize="11" />
-                            </StackPanel>
-                        </Button>
-
-                        <Button x:Name="AnalysisStep" Classes="step" Command="{Binding GoToCommand}"
-                                CommandParameter="{x:Static vm:ShellStep.Analysis}">
-                            <StackPanel Spacing="2">
-                                <TextBlock Text="分析与证据" FontWeight="SemiBold" />
-                                <TextBlock Text="项目画像与待确认问题" Classes="muted" FontSize="11" />
-                            </StackPanel>
-                        </Button>
-
-                        <Button x:Name="ApplicantStep" Classes="step" Command="{Binding GoToCommand}"
-                                CommandParameter="{x:Static vm:ShellStep.Applicant}">
-                            <StackPanel Spacing="2">
-                                <TextBlock Text="申请信息" FontWeight="SemiBold" />
-                                <TextBlock Text="按官方规定填写申请表" Classes="muted" FontSize="11" />
-                            </StackPanel>
-                        </Button>
-
-                        <Button x:Name="CodeStep" Classes="step" Command="{Binding GoToCommand}"
-                                CommandParameter="{x:Static vm:ShellStep.Code}">
-                            <StackPanel Spacing="2">
-                                <TextBlock Text="代码材料" FontWeight="SemiBold" />
-                                <TextBlock Text="勾选纳入材料的源文件" Classes="muted" FontSize="11" />
-                            </StackPanel>
-                        </Button>
-
-                        <Button x:Name="MaterialsStep" Classes="step" Command="{Binding GoToCommand}"
-                                CommandParameter="{x:Static vm:ShellStep.Materials}">
-                            <StackPanel Spacing="2">
-                                <TextBlock Text="材料与导出" FontWeight="SemiBold" />
-                                <TextBlock Text="校验、生成与导出材料包" Classes="muted" FontSize="11" />
-                            </StackPanel>
-                        </Button>
+                        <!-- 步骤按钮：数据驱动渲染，软著与专利两条流程的步骤集合不同 -->
+                        <ItemsControl ItemsSource="{Binding Steps}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:StepItem">
+                                    <Button Classes="step"
+                                            Classes.active="{Binding IsActive}"
+                                            Margin="0,0,0,4"
+                                            Command="{Binding $parent[ItemsControl].((vm:ShellViewModel)DataContext).GoToCommand}"
+                                            CommandParameter="{Binding Step}">
+                                        <StackPanel Spacing="2">
+                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                                            <TextBlock Text="{Binding Hint}" Classes="muted" FontSize="11" />
+                                        </StackPanel>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
 
                         <!-- 模型接入设置 -->
                         <Border Classes="soft" Margin="0,14,0,0" Padding="12">

@@ -18,7 +18,24 @@
 
 ---
 
-## 〇、两种形态：Web 端与原生客户端
+## 〇、下载与安装（原生客户端）
+
+端侧离线客户端已发布预编译版本，**目标机器无需安装 .NET 运行时**：
+
+| 平台 | 文件 | 说明 |
+|---|---|---|
+| Windows x64 | `SoftCopyright-Desktop-win-x64.zip` | 解压后运行 `SoftCopyright.Desktop.exe` |
+| macOS Apple Silicon | `SoftCopyright-Desktop-macos-arm64.tar.gz` | 需 `chmod +x` 后运行 |
+| Linux x64 | `SoftCopyright-Desktop-linux-x64.tar.gz` | 需 `chmod +x` 后运行 |
+| Android | `SoftCopyright-Android-arm64-v8a-x86_64.apk` | 含 arm64-v8a 与 x86_64 |
+
+下载地址：<https://github.com/CjhAIIt/SoftCopyright/releases/tag/v0.1.0>
+
+各版本的发布说明与已知限制见 [`docs/releases/v0.1.0.md`](docs/releases/v0.1.0.md)。后续版本沿用同一 `docs/releases/` 目录。
+
+---
+
+## 一、两种形态：Web 端与原生客户端
 
 | | Web 端 | 原生客户端（端侧离线） |
 |---|---|---|
@@ -32,12 +49,17 @@
 **两者共用同一套业务引擎**（`Domain / Application / Infrastructure / AI / Documents / ProjectScan` 都不依赖 ASP.NET），
 校验规则、材料生成器、选项目录只有一份实现，客户端不是"把 Web 再写一遍"。
 
+客户端同样覆盖**软著与专利两条流程**：步骤按案例类型分化——软著走「申请信息 → 代码材料」，专利走「专利交底书」，专利申请文件不含代码鉴别材料。
+
 ```powershell
 # 桌面端：开发运行
 dotnet run --project src/SoftCopyright.Desktop
 
 # 生成演示案例并打开申请信息页
 dotnet run --project src/SoftCopyright.Desktop -- --demo --step Applicant
+
+# 生成专利演示案例并打开技术交底书页
+dotnet run --project src/SoftCopyright.Desktop -- --demo-patent --step PatentDisclosure
 
 # 按手机尺寸开窗，检查窄屏布局
 dotnet run --project src/SoftCopyright.Desktop -- --size 390x844
@@ -492,6 +514,7 @@ $env:SOFTCOPYRIGHT_AI_APIKEY = "sk-..."
 - **申请信息选项**：选项目录覆盖 8 个官方选项字段；候选项取值与标签不重复；历史写法能归一化、非法写法不能；条件必填与「原始取得须单独开发」的跨字段约束都能被检出；保存时非法取值与非法分类号被拒绝（400）
 - **安全验收**：仓库脚本从未被执行（用标记文件证明）；提示注入只作为证据内容处理
 - **端侧引擎**：没有 ASP.NET、没有 HTTP 时，整条软著闭环（新建 → 导入 ZIP → 扫描 → 分析 → 确认画像 → 填申请信息 → 确认 → 选代码 → 确认 → 生成材料 → 读出材料包）能跑通；越界的选项取值与格式非法的分类号在保存时即被拒绝；未配置密钥时保持完全离线
+- **端侧专利闭环**：没有 ASP.NET、没有 HTTP 时，专利线（新建 → 导入 ZIP → 扫描 → 分析 → 确认画像 → 填技术交底书 → 生成草稿 → 确认草稿 → 生成专利申请文件 → 读出材料包）能跑通；产出权利要求书、说明书、摘要与技术交底书，且**不含代码鉴别材料**；未确认草稿时生成被拒绝
 
 合成 fixture 共 6 个（.NET / Node / Python / 未知扩展名 / 注入样例 / 含可执行脚本样例），全部由测试代码生成，不含任何真实个人源码。
 
@@ -510,3 +533,4 @@ $env:SOFTCOPYRIGHT_AI_APIKEY = "sk-..."
 | [`docs/软著申请字段规范.md`](docs/软著申请字段规范.md) | 官方申请表里的选项型字段、条件必填与跨字段约束 |
 | [`docs/状态机与确认门禁.md`](docs/状态机与确认门禁.md) | 状态迁移、确认哈希与失效级联 |
 | [`docs/专利撰写能力调研.md`](docs/专利撰写能力调研.md) | 开源社区自动化专利撰写方案调研与本工具的借鉴取舍 |
+| [`docs/releases/v0.1.0.md`](docs/releases/v0.1.0.md) | v0.1.0 发布说明与该版本的已知限制 |

@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using SoftCopyright.Application.Dtos;
 using SoftCopyright.Domain;
+using SoftCopyright.Domain.Contracts;
 
 namespace SoftCopyright.Client.Services;
 
@@ -12,31 +13,56 @@ namespace SoftCopyright.Client.Services;
 /// </summary>
 public sealed class DemoSeeder(DesktopEngine engine)
 {
-    /// <summary>生成演示案例，返回案例 ID；找不到样例仓库时只建空案例。</summary>
+    /// <summary>生成演示案例，返回软著案例 ID；找不到样例仓库时只建空案例。</summary>
     public async Task<Guid> SeedAsync(CancellationToken ct = default)
     {
         var caseEntity = await engine.CreateCaseAsync("演示案例", MaterialKind.SoftwareCopyright, ct);
 
-        var samples = FindSamplesRoot();
-        if (samples is not null)
-        {
-            var zipPath = Path.Combine(engine.DataRoot, "demo-sample.zip");
-            if (File.Exists(zipPath))
-            {
-                File.Delete(zipPath);
-            }
-
-            ZipFile.CreateFromDirectory(samples, zipPath);
-            await engine.ImportZipAsync(caseEntity.Id, zipPath, ct);
-            await engine.ScanAsync(caseEntity.Id, ct);
-            await engine.AnalyzeAsync(caseEntity.Id, ct);
-            await engine.ConfirmAsync(caseEntity.Id, ConfirmationStage.ProjectProfile, "演示数据", ct);
-        }
+        await ImportAndAnalyzeAsync(caseEntity.Id, ct);
 
         await engine.SaveApplicantAsync(caseEntity.Id, BuildSampleApplicantInfo(), ct);
         await engine.ConfirmAsync(caseEntity.Id, ConfirmationStage.ApplicantInfo, "演示数据", ct);
 
         return caseEntity.Id;
+    }
+
+    /// <summary>
+    /// 生成专利演示案例：填好一份技术交底书并生成草稿，
+    /// 用来展示专利线独有的「专利交底书」步骤与权利要求预览。
+    /// </summary>
+    public async Task<Guid> SeedPatentAsync(CancellationToken ct = default)
+    {
+        var caseEntity = await engine.CreateCaseAsync("演示专利案例", MaterialKind.Patent, ct);
+
+        await ImportAndAnalyzeAsync(caseEntity.Id, ct);
+        await engine.ConfirmAsync(caseEntity.Id, ConfirmationStage.ProjectProfile, "演示数据", ct);
+
+        await engine.SavePatentDisclosureAsync(caseEntity.Id, BuildSampleDisclosure(), ct);
+        await engine.DraftPatentAsync(caseEntity.Id, ct);
+
+        return caseEntity.Id;
+    }
+
+    /// <summary>导入样例仓库并完成扫描与分析。</summary>
+    private async Task ImportAndAnalyzeAsync(Guid caseId, CancellationToken ct)
+    {
+        var samples = FindSamplesRoot();
+        if (samples is null)
+        {
+            return;
+        }
+
+        var zipPath = Path.Combine(engine.DataRoot, "demo-sample.zip");
+        if (File.Exists(zipPath))
+        {
+            File.Delete(zipPath);
+        }
+
+        ZipFile.CreateFromDirectory(samples, zipPath);
+        await engine.ImportZipAsync(caseId, zipPath, ct);
+        await engine.ScanAsync(caseId, ct);
+        await engine.AnalyzeAsync(caseId, ct);
+        await engine.ConfirmAsync(caseId, ConfirmationStage.ProjectProfile, "演示数据", ct);
     }
 
     /// <summary>
@@ -69,6 +95,26 @@ public sealed class DemoSeeder(DesktopEngine engine)
         "ByOwner",
         "12345-1234",
         0);
+
+    /// <summary>
+    /// 样例技术交底书：覆盖全部必填栏位，并写明现有技术来源，
+    /// 这样打开就能看到专利线必填项与权利要求预览的样子。
+    /// </summary>
+    private static PatentDisclosureUpdateRequest BuildSampleDisclosure() => new(
+        "一种端侧离线的知识产权申请材料生成方法",
+        "软件工程、静态分析与文档生成",
+        "现有材料准备工具多为在线系统，依赖服务器保存案例与生成材料；在涉密环境或断网场景下无法使用，且仓库内容需上传。",
+        "如何在不联网、不上传源码的前提下，基于本地仓库证据产出可复核的申请材料。",
+        "通过安全解包对目标仓库做只读静态解析；从解析结果中抽取带路径与哈希锚定的证据条目；" +
+            "由本地规则引擎将证据映射为项目画像与技术特征；通过分层确认门禁把法律与权属事实交由人工确认；" +
+            "最终在端侧生成材料包并附带证据清单与校验报告。",
+        "全程离线，源码不离开本机；材料中的每条事实都可回溯到具体文件与行号；规则可复现，输出可复核。",
+        "图 1 为整体流程示意图；图 2 为确认门禁与失效级联关系示意图。",
+        "现有技术为面向服务器部署的材料生成系统与面向单机的文档模板工具。",
+        "文献 A：《面向云端的申请材料自动生成方法》，2023 年公开；文献 B：本地文档模板工具使用手册，2024 年公开。",
+        "示例申请人",
+        "张三、李四",
+        PatentType.Invention);
 
     /// <summary>寻找仓库里的样例目录（发布后的目录结构可能不同，找不到就跳过导入）。</summary>
     private static string? FindSamplesRoot()

@@ -16,7 +16,7 @@ public static class AppBootstrap
     public static Exception? StartupError { get; set; }
 
     /// <summary>启动参数。</summary>
-    public static DesktopLaunchOptions Options { get; set; } = new(null, null, false, null, null, null);
+    public static DesktopLaunchOptions Options { get; set; } = new(null, null, false, false, null, null, null);
 
     /// <summary>
     /// 准备引擎。必须在 Avalonia 初始化之前调用。
@@ -31,10 +31,21 @@ public static class AppBootstrap
         {
             Engine = DesktopEngine.StartAsync(args, dataRoot).GetAwaiter().GetResult();
 
-            if (Options.SeedDemo && Engine is not null)
+            if (Engine is null)
+            {
+                return;
+            }
+
+            if (Options.SeedDemo)
             {
                 var seeded = new DemoSeeder(Engine).SeedAsync().GetAwaiter().GetResult();
                 Options = Options with { CaseId = seeded };
+            }
+
+            if (Options.SeedPatentDemo)
+            {
+                var seededPatent = new DemoSeeder(Engine).SeedPatentAsync().GetAwaiter().GetResult();
+                Options = Options with { CaseId = seededPatent };
             }
         }
         catch (Exception ex)

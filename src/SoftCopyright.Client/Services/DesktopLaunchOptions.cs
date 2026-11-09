@@ -6,7 +6,7 @@ namespace SoftCopyright.Client.Services;
 /// 启动参数。
 ///
 /// 支持 <c>--case &lt;案例 ID&gt;</c>、<c>--step &lt;步骤名&gt;</c>、<c>--demo</c>、
-/// <c>--snapshot &lt;文件&gt;</c> 与 <c>--size &lt;宽x高&gt;</c>：
+/// <c>--demo-patent</c>、<c>--snapshot &lt;文件&gt;</c> 与 <c>--size &lt;宽x高&gt;</c>：
 /// 启动后直接打开指定案例的指定步骤，或先生成一份演示案例；
 /// <c>--size</c> 用来按手机尺寸渲染快照，检查窄屏布局。
 /// </summary>
@@ -14,6 +14,7 @@ public sealed record DesktopLaunchOptions(
     Guid? CaseId,
     ShellStep? Step,
     bool SeedDemo,
+    bool SeedPatentDemo,
     string? SnapshotPath,
     double? Width,
     double? Height)
@@ -24,6 +25,7 @@ public sealed record DesktopLaunchOptions(
         Guid? caseId = null;
         ShellStep? step = null;
         var seedDemo = false;
+        var seedPatentDemo = false;
         string? snapshotPath = null;
         double? width = null;
         double? height = null;
@@ -72,9 +74,13 @@ public sealed record DesktopLaunchOptions(
                 case "--demo":
                     seedDemo = true;
                     break;
+
+                case "--demo-patent":
+                    seedPatentDemo = true;
+                    break;
             }
         }
 
-        return new DesktopLaunchOptions(caseId, step, seedDemo, snapshotPath, width, height);
+        return new DesktopLaunchOptions(caseId, step, seedDemo, seedPatentDemo, snapshotPath, width, height);
     }
 }

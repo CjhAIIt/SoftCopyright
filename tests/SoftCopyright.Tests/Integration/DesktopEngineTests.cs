@@ -189,4 +189,88 @@ public sealed class DesktopEngineTests
         Assert.Equal("Published", info.FirstPublicationStatus);
         Assert.True(info.IsConfirmed);
     }
+
+    [Fact]
+    public async Task 端侧引擎在不启动服务器的情况下跑通完整专利闭环()
+    {
+        using var temp = new TestTempDirectory("sc-desktop-patent");
+        await using var engine = await DesktopEngine.StartAsync([], temp.Path);
+
+        // 1. 新建专利案例
+        var caseEntity = await engine.CreateCaseAsync("端侧专利闭环测试", MaterialKind.Patent, default);
+        Assert.Equal(MaterialKind.Patent, caseEntity.MaterialKind);
+
+        // 2. 导入本机 ZIP 并扫描
+        var zipPath = RepoFixtureBuilder.CreateZip(temp.Combine("repo.zip"), RepoFixtureBuilder.DotNetSample());
+        await engine.ImportZipAsync(caseEntity.Id, zipPath, default);
+        await engine.ScanAsync(caseEntity.Id, default);
+        await engine.AnalyzeAsync(caseEntity.Id, default);
+
+        // 3. 确认项目画像
+        var profile = await engine.ConfirmAsync(caseEntity.Id, ConfirmationStage.ProjectProfile, "测试", default);
+        Assert.True(profile.Confirmed);
+
+        // 4. 填写技术交底书
+        var request = new PatentDisclosureUpdateRequest(
+            "端侧专利：一种离线材料生成方法",
+            "软件工程",
+            "现有材料生成工具依赖服务器，离线场景不可用。",
+            "如何在无网络环境下生成申请材料。",
+            "通过本地规则引擎实现扫描取证；通过证据哈希锚定事实；通过确认门禁保证人工复核。",
+            "无需服务器即可产出可复核的材料包。",
+            "图 1 为整体流程图。",
+            "现有技术为在线材料生成系统。",
+            "文献 A，2024 年公开",
+            "示例申请人",
+            "张三、李四",
+            PatentType.Invention);
+
+        var disclosure = await engine.SavePatentDisclosureAsync(caseEntity.Id, request, default);
+        Assert.Equal("端侧专利：一种离线材料生成方法", disclosure.Title);
+        Assert.Equal("示例申请人", disclosure.ApplicantName);
+        Assert.Equal(PatentType.Invention, disclosure.PatentType);
+
+        // 5. 生成专利草稿：权利要求由交底书派生
+        var draft = await engine.DraftPatentAsync(caseEntity.Id, default);
+        Assert.True(draft.ClaimCount > 0, "应当生成权利要求");
+
+        var afterDraft = await engine.GetPatentDisclosureAsync(caseEntity.Id, default);
+        Assert.NotEmpty(afterDraft.Claims);
+        Assert.False(string.IsNullOrWhiteSpace(afterDraft.Abstract));
+
+        // 6. 确认草稿（专利线唯一的生成前门禁）
+        var confirmed = await engine.ConfirmAsync(caseEntity.Id, ConfirmationStage.DocumentDraft, "测试", default);
+        Assert.True(confirmed.Confirmed);
+
+        // 7. 生成专利申请文件
+        var generation = await engine.GenerateAsync(caseEntity.Id, default);
+        Assert.True(generation.ArtifactCount > 0);
+
+        var artifacts = await engine.ListArtifactsAsync(caseEntity.Id, default);
+        Assert.Contains(artifacts, a => a.Kind == ArtifactKind.PatentClaims);
+        Assert.Contains(artifacts, a => a.Kind == ArtifactKind.PatentSpecification);
+        Assert.Contains(artifacts, a => a.Kind == ArtifactKind.PatentAbstract);
+        Assert.Contains(artifacts, a => a.Kind == ArtifactKind.Package);
+
+        // 专利申请文件不含代码鉴别材料
+        Assert.DoesNotContain(artifacts, a => a.Kind == ArtifactKind.CodeMaterial);
+
+        var package = artifacts.Single(a => a.Kind == ArtifactKind.Package);
+        var bytes = await engine.ReadArtifactAsync(package.Id, default);
+        Assert.NotNull(bytes);
+        Assert.True(bytes.Length > 0);
+    }
+
+    [Fact]
+    public async Task 专利案例在没有确认草稿时不能生成申请文件()
+    {
+        using var temp = new TestTempDirectory("sc-desktop-patent-gate");
+        await using var engine = await DesktopEngine.StartAsync([], temp.Path);
+
+        var caseEntity = await engine.CreateCaseAsync("专利门禁测试", MaterialKind.Patent, default);
+
+        // 未填写交底书：生成应被拒绝。
+        await Assert.ThrowsAsync<ConflictException>(
+            () => engine.GenerateAsync(caseEntity.Id, default));
+    }
 }

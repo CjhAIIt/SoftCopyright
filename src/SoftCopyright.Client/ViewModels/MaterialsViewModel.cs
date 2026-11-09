@@ -55,6 +55,9 @@ public sealed partial class MaterialsViewModel : ObservableObject, IRefreshable
     /// <summary>是否有产物可展示。</summary>
     public bool HasArtifacts => Artifacts.Count > 0;
 
+    /// <summary>当前案例是否走专利流程。</summary>
+    public bool IsPatentFlow => _shell.IsPatentFlow;
+
     /// <summary>执行校验。</summary>
     [RelayCommand]
     private async Task ValidateAsync()
@@ -105,8 +108,37 @@ public sealed partial class MaterialsViewModel : ObservableObject, IRefreshable
                 throw new InvalidOperationException("请先选择案例。");
             }
 
+            var caseId = _shell.CurrentCase.Id;
+
+            // 与 Web 端一致：生成材料前必须已通过相应门禁。
+            // 软著要求申请信息与代码范围两道，专利只要求确认草稿一道。
+            var statuses = await _engine.ListConfirmationsAsync(caseId, CancellationToken.None);
+
+            if (!IsPatentFlow)
+            {
+                var applicant = statuses.FirstOrDefault(s => s.Stage == ConfirmationStage.ApplicantInfo);
+                if (applicant is null || !applicant.Confirmed || applicant.IsStale)
+                {
+                    throw new InvalidOperationException("请先填写并确认申请信息，再生成材料。");
+                }
+
+                var code = statuses.FirstOrDefault(s => s.Stage == ConfirmationStage.CodeScope);
+                if (code is null || !code.Confirmed || code.IsStale)
+                {
+                    throw new InvalidOperationException("请先勾选源文件并确认代码范围，再生成材料。");
+                }
+            }
+
+            var draft = statuses.FirstOrDefault(s => s.Stage == ConfirmationStage.DocumentDraft);
+            if (draft is null || !draft.Confirmed || draft.IsStale)
+            {
+                throw new InvalidOperationException(IsPatentFlow
+                    ? "请先审阅并确认专利草稿，再生成专利申请文件。"
+                    : "请先审阅并确认文档草稿，再生成正式材料。");
+            }
+
             _shell.StatusMessage = "正在生成材料……";
-            var summary = await _engine.GenerateAsync(_shell.CurrentCase.Id, CancellationToken.None);
+            var summary = await _engine.GenerateAsync(caseId, CancellationToken.None);
             Summary = $"已生成 {summary.ArtifactCount} 份产物，材料包 {summary.PackageBytes} 字节。";
 
             foreach (var warning in summary.Warnings)
@@ -115,6 +147,58 @@ public sealed partial class MaterialsViewModel : ObservableObject, IRefreshable
             }
 
             HasGenerated = true;
+            await RefreshAsync();
+        });
+    }
+
+    /// <summary>确认最终材料（归档）。</summary>
+    [RelayCommand]
+    private async Task ConfirmFinalAsync()
+    {
+        await _shell.RunBusyAsync(async () =>
+        {
+            if (_shell.CurrentCase is null)
+            {
+                throw new InvalidOperationException("请先选择案例。");
+            }
+
+            var caseId = _shell.CurrentCase.Id;
+
+            await _engine.ConfirmAsync(
+                caseId,
+                ConfirmationStage.FinalPackage,
+                "在桌面端确认最终材料",
+                CancellationToken.None);
+
+            _shell.StatusMessage = "最终材料已确认，案例已归档。";
+            await RefreshAsync();
+        });
+    }
+
+    /// <summary>
+    /// 确认文档草稿 / 专利草稿。这是生成材料前的最后一道门禁：
+    /// 软著要求前序三道门禁都已通过且未失效，专利要求交底书与权利要求就绪。
+    /// </summary>
+    [RelayCommand]
+    private async Task ConfirmDraftAsync()
+    {
+        await _shell.RunBusyAsync(async () =>
+        {
+            if (_shell.CurrentCase is null)
+            {
+                throw new InvalidOperationException("请先选择案例。");
+            }
+
+            await _engine.ConfirmAsync(
+                _shell.CurrentCase.Id,
+                ConfirmationStage.DocumentDraft,
+                IsPatentFlow ? "在桌面端确认专利草稿" : "在桌面端确认文档草稿",
+                CancellationToken.None);
+
+            _shell.StatusMessage = IsPatentFlow
+                ? "专利草稿已确认，可以生成专利申请文件。"
+                : "文档草稿已确认，可以生成正式材料。";
+
             await RefreshAsync();
         });
     }
@@ -190,6 +274,11 @@ public sealed partial class MaterialsViewModel : ObservableObject, IRefreshable
         ArtifactKind.ApplicantInfoDraft => "申请信息草稿",
         ArtifactKind.ValidationReport => "校验报告",
         ArtifactKind.Package => "材料包",
+        ArtifactKind.PatentClaims => "权利要求书",
+        ArtifactKind.PatentSpecification => "说明书",
+        ArtifactKind.PatentAbstract => "摘要",
+        ArtifactKind.PatentDisclosure => "技术交底书",
+        ArtifactKind.Manifest => "材料清单",
         _ => kind.ToString()
     };
 }

@@ -69,7 +69,7 @@ dotnet test      # 必须全绿
 - **鸿蒙端**：鸿蒙 NEXT 没有 .NET 运行时，需要独立 ArkTS 工程与签名链，本期不做
 - **iOS 安装包**：需要在 macOS 上用 Xcode 签名，Windows 上产出不了
 - **Android 真机验证**：APK 能构建能签名，但本机没有模拟器/设备，运行时行为未实测
-- 客户端的专利线界面（引擎已就绪，界面未做）
+- **专利附图生成**：客户端与 Web 端都只产出「附图说明」章节，流程图与结构图由申请人补充
 
 ## 客户端的两个坑（不要再踩）
 
@@ -81,6 +81,15 @@ dotnet test      # 必须全绿
 另外：Android 工程**不在解决方案里**（默认构建不碰它，避免没装 android 工作负载的机器编译失败），
 用 `./scripts/build-mobile.ps1` 单独构建。
 
+## 客户端的另外两个坑
+
+3. **属性名会遮蔽同名类型**。视图模型里写了 `[ObservableProperty] private PatentType? _patentType;` 之后，
+   `nameof(PatentType.Invention)` 会把 `PatentType` 解析成那个属性而不是枚举，编译报
+   "OptionItem 未包含 Invention 的定义"。用 `nameof(Domain.PatentType.Invention)` 完全限定。
+4. **Avalonia 的 `Classes.xxx` 支持绑定**：`Classes.active="{Binding IsActive}"` 可以直接把布尔属性绑成样式类，
+   比在代码后置里遍历 `ItemsControl` 的容器去 `Classes.Set(...)` 可靠得多（容器只有被实现后才有，顺序还会变）。
+   侧栏步骤按钮因此改成 `ItemsControl` + `DataTemplate` 数据驱动，步骤集合随案例类型变化而重建。
+
 ## 文档
 
 - `docs/架构说明.md`：分层、模块职责、端到端数据流
@@ -88,4 +97,5 @@ dotnet test      # 必须全绿
 - `docs/材料规则说明.md`：规则版本、字段清单、页数与行数策略
 - `docs/状态机与确认门禁.md`：状态迁移、确认哈希与失效级联
 - `docs/软著申请字段规范.md`：官方申请表里的选项型字段、条件必填与跨字段约束
-- `docs/客户端说明.md`：原生客户端（桌面 + Android）架构、平台覆盖、运行与打包
+- `docs/客户端说明.md`：原生客户端（桌面 + Android）架构、平台覆盖、两条流程的步骤分化、运行与打包
+- `docs/releases/`：各版本的发布说明与该版本的已知限制（发版时新增一份）

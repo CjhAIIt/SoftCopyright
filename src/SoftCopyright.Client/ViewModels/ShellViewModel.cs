@@ -14,6 +14,7 @@ public enum ShellStep
     Analysis,
     Applicant,
     Code,
+    PatentDisclosure,
     Materials
 }
 
@@ -53,28 +54,50 @@ public sealed partial class ShellViewModel : ObservableObject
         _engine = engine;
         _theme = theme;
 
-        Steps =
-        [
-            new StepItem { Step = ShellStep.Cases, Title = "案例", Hint = "新建与选择申请案例" },
-            new StepItem { Step = ShellStep.Import, Title = "导入仓库", Hint = "ZIP 压缩包或 Git 仓库" },
-            new StepItem { Step = ShellStep.Analysis, Title = "分析与证据", Hint = "项目画像与待确认问题" },
-            new StepItem { Step = ShellStep.Applicant, Title = "申请信息", Hint = "按官方规定填写申请表" },
-            new StepItem { Step = ShellStep.Code, Title = "代码材料", Hint = "勾选纳入材料的源文件" },
-            new StepItem { Step = ShellStep.Materials, Title = "材料与导出", Hint = "校验、生成与导出材料包" }
-        ];
-
         Cases = new CasesViewModel(this);
         Import = new ImportViewModel(this);
         Analysis = new AnalysisViewModel(this);
         Applicant = new ApplicantViewModel(this);
         Code = new CodeViewModel(this);
+        PatentDisclosure = new PatentDisclosureViewModel(this);
         Materials = new MaterialsViewModel(this);
+
+        // 未选案例时先按软著线展示步骤；选定专利案例后会重建为专利线的步骤集合。
+        RebuildSteps(MaterialKind.SoftwareCopyright);
 
         _currentStep = ShellStep.Cases;
         SyncSteps();
     }
 
-    public ObservableCollection<StepItem> Steps { get; }
+    /// <summary>按材料类型重建侧栏步骤集合。软著与专利是两条独立流程，步骤不同。</summary>
+    private void RebuildSteps(MaterialKind kind)
+    {
+        Steps.Clear();
+
+        Steps.Add(new StepItem { Step = ShellStep.Cases, Title = "案例", Hint = "新建与选择申请案例" });
+        Steps.Add(new StepItem { Step = ShellStep.Import, Title = "导入仓库", Hint = "ZIP 压缩包或 Git 仓库" });
+        Steps.Add(new StepItem { Step = ShellStep.Analysis, Title = "分析与证据", Hint = "项目画像与待确认问题" });
+
+        if (kind == MaterialKind.Patent)
+        {
+            Steps.Add(new StepItem { Step = ShellStep.PatentDisclosure, Title = "专利交底书", Hint = "交底书与权利要求草稿" });
+        }
+        else
+        {
+            Steps.Add(new StepItem { Step = ShellStep.Applicant, Title = "申请信息", Hint = "按官方规定填写申请表" });
+            Steps.Add(new StepItem { Step = ShellStep.Code, Title = "代码材料", Hint = "勾选纳入材料的源文件" });
+        }
+
+        Steps.Add(new StepItem { Step = ShellStep.Materials, Title = "材料与导出", Hint = "校验、生成与导出材料包" });
+    }
+
+    /// <summary>当前案例是否走专利流程。</summary>
+    public bool IsPatentFlow => CurrentCase?.MaterialKind == MaterialKind.Patent;
+
+    /// <summary>当前案例是否走软著流程。</summary>
+    public bool IsSoftwareCopyrightFlow => CurrentCase?.MaterialKind != MaterialKind.Patent;
+
+    public ObservableCollection<StepItem> Steps { get; } = [];
 
     /// <summary>业务引擎：各步骤共用同一份。</summary>
     public DesktopEngine Engine => _engine;
@@ -88,6 +111,8 @@ public sealed partial class ShellViewModel : ObservableObject
     public ApplicantViewModel Applicant { get; }
 
     public CodeViewModel Code { get; }
+
+    public PatentDisclosureViewModel PatentDisclosure { get; }
 
     public MaterialsViewModel Materials { get; }
 
@@ -121,17 +146,24 @@ public sealed partial class ShellViewModel : ObservableObject
     /// <summary>窄屏（手机 / 小窗口）模式：侧栏改为底部导航，表单改为单列。</summary>
     [ObservableProperty] private bool _isCompact;
 
-    /// <summary>当前步骤在流程中的序号（从 0 开始）。</summary>
-    public int StepIndex => (int)CurrentStep;
+    /// <summary>当前步骤在流程中的序号（从 0 开始）；当前步骤不在集合中时为 -1。</summary>
+    public int StepIndex
+    {
+        get
+        {
+            var current = Steps.FirstOrDefault(s => s.Step == CurrentStep);
+            return current is null ? -1 : Steps.IndexOf(current);
+        }
+    }
 
     /// <summary>当前步骤名称。</summary>
-    public string CurrentStepTitle => Steps[StepIndex].Title;
+    public string CurrentStepTitle => Steps.FirstOrDefault(s => s.Step == CurrentStep)?.Title ?? string.Empty;
 
     /// <summary>是否还有上一步。</summary>
     public bool CanGoBack => StepIndex > 0;
 
     /// <summary>是否还有下一步。</summary>
-    public bool CanGoNext => StepIndex < Steps.Count - 1;
+    public bool CanGoNext => StepIndex >= 0 && StepIndex < Steps.Count - 1;
 
     public bool HasCase => CurrentCase is not null;
 
@@ -147,7 +179,7 @@ public sealed partial class ShellViewModel : ObservableObject
 
     /// <summary>当前步骤是否可进入（没有案例时只能停留在案例列表）。</summary>
     public bool CanEnterStep(ShellStep step) =>
-        step == ShellStep.Cases || HasCase;
+        (step == ShellStep.Cases || HasCase) && Steps.Any(s => s.Step == step);
 
     /// <summary>切换步骤。</summary>
     [RelayCommand]
@@ -155,7 +187,7 @@ public sealed partial class ShellViewModel : ObservableObject
     {
         if (!CanEnterStep(step))
         {
-            ErrorMessage = "请先选择一个案例。";
+            ErrorMessage = HasCase ? "当前流程没有这一步。" : "请先选择一个案例。";
             return;
         }
 
@@ -170,6 +202,7 @@ public sealed partial class ShellViewModel : ObservableObject
             ShellStep.Analysis => Analysis,
             ShellStep.Applicant => Applicant,
             ShellStep.Code => Code,
+            ShellStep.PatentDisclosure => PatentDisclosure,
             ShellStep.Materials => Materials,
             _ => null
         };
@@ -211,7 +244,6 @@ public sealed partial class ShellViewModel : ObservableObject
 
         await GoToAsync(Steps[StepIndex + 1].Step);
     }
-
     /// <summary>打开本机数据目录。</summary>
     [RelayCommand]
     private void OpenDataFolder()
@@ -271,7 +303,6 @@ public sealed partial class ShellViewModel : ObservableObject
         OnPropertyChanged(nameof(CaseDisplayName));
         SyncSteps();
     }
-
     /// <summary>刷新顶栏的模型接入状态。</summary>
     public async Task RefreshAiModeAsync()
     {
@@ -330,6 +361,22 @@ public sealed partial class ShellViewModel : ObservableObject
     {
         OnPropertyChanged(nameof(HasCase));
         OnPropertyChanged(nameof(CaseDisplayName));
+        OnPropertyChanged(nameof(IsPatentFlow));
+        OnPropertyChanged(nameof(IsSoftwareCopyrightFlow));
+
+        // 案例类型变了，步骤集合也随之改变（软著有申请信息与代码材料，专利有交底书）。
+        RebuildSteps(value?.MaterialKind ?? MaterialKind.SoftwareCopyright);
+
+        // 当前步骤可能不在新集合里（例如从软著切到专利时停在「申请信息」），回到案例列表。
+        if (!Steps.Any(s => s.Step == CurrentStep))
+        {
+            CurrentStep = ShellStep.Cases;
+        }
+
         SyncSteps();
+        OnPropertyChanged(nameof(StepIndex));
+        OnPropertyChanged(nameof(CurrentStepTitle));
+        OnPropertyChanged(nameof(CanGoBack));
+        OnPropertyChanged(nameof(CanGoNext));
     }
 }

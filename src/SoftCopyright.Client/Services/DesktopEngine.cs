@@ -267,6 +267,36 @@ public sealed class DesktopEngine : IAsyncDisposable
         return await selection.PreviewAsync(caseId, relativePath, maxLines, ct);
     }
 
+    // ── 专利交底书与草稿 ───────────────────────────────────────────────────
+
+    /// <summary>取技术交底书与权利要求；未填写时返回空白交底书。</summary>
+    public async Task<PatentDisclosureDto> GetPatentDisclosureAsync(Guid caseId, CancellationToken ct)
+    {
+        var service = Services.GetRequiredService<IPatentService>();
+        var disclosure = await service.GetDisclosureAsync(caseId, ct);
+        var claims = await service.GetClaimsAsync(caseId, ct);
+        return PatentService.ToDto(disclosure ?? new InventionDisclosure { CaseId = caseId }, claims);
+    }
+
+    /// <summary>保存技术交底书。</summary>
+    public async Task<PatentDisclosureDto> SavePatentDisclosureAsync(
+        Guid caseId,
+        PatentDisclosureUpdateRequest request,
+        CancellationToken ct)
+    {
+        var service = Services.GetRequiredService<IPatentService>();
+        var disclosure = await service.SaveDisclosureAsync(caseId, request, ct);
+        var claims = await service.GetClaimsAsync(caseId, ct);
+        return PatentService.ToDto(disclosure, claims);
+    }
+
+    /// <summary>生成专利草稿：权利要求、摘要与实施例，全部由技术交底书与仓库证据派生。</summary>
+    public async Task<PatentDraftSummary> DraftPatentAsync(Guid caseId, CancellationToken ct)
+    {
+        var workflow = Services.GetRequiredService<ICasePatentDraftWorkflow>();
+        return await workflow.DraftAsync(caseId, null, ct);
+    }
+
     // ── 确认、校验与生成 ───────────────────────────────────────────────────
 
     /// <summary>确认某个阶段。</summary>
