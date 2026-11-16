@@ -29,7 +29,10 @@ $outRoot = Join-Path $repoRoot 'artifacts/mobile/android'
 
 Write-Host "==> 检查 Android 工作负载"
 $workloads = dotnet workload list
-if ($workloads -notmatch '^\s*android\s' -and $workloads -notmatch '\bandroid\b') {
+# 注意：`-notmatch` 对数组是「筛出所有不匹配的行」，结果永远非空，
+# 因此必须用 Where-Object 判断是否存在匹配行，否则会把已安装的 android 误判成未安装。
+$hasAndroid = @($workloads | Where-Object { $_ -match '^\s*android\s' }).Count -gt 0
+if (-not $hasAndroid) {
     throw "未安装 Android 工作负载。请先执行：dotnet workload install android"
 }
 
