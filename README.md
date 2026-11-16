@@ -29,9 +29,9 @@
 | Linux x64 | `SoftCopyright-Desktop-linux-x64.tar.gz` | 需 `chmod +x` 后运行 |
 | Android | `SoftCopyright-Android-arm64-v8a-x86_64.apk` | 含 arm64-v8a 与 x86_64 |
 
-下载地址：<https://github.com/CjhAIIt/SoftCopyright/releases/tag/v0.1.0>
+下载地址：<https://github.com/CjhAIIt/SoftCopyright/releases/tag/v0.1.1>
 
-各版本的发布说明与已知限制见 [`docs/releases/v0.1.0.md`](docs/releases/v0.1.0.md)。后续版本沿用同一 `docs/releases/` 目录。
+各版本的发布说明与已知限制见 [`docs/releases/`](docs/releases/)（当前版本：[`v0.1.1.md`](docs/releases/v0.1.1.md)）。
 
 ---
 
@@ -534,3 +534,4 @@ $env:SOFTCOPYRIGHT_AI_APIKEY = "sk-..."
 | [`docs/状态机与确认门禁.md`](docs/状态机与确认门禁.md) | 状态迁移、确认哈希与失效级联 |
 | [`docs/专利撰写能力调研.md`](docs/专利撰写能力调研.md) | 开源社区自动化专利撰写方案调研与本工具的借鉴取舍 |
 | [`docs/releases/v0.1.0.md`](docs/releases/v0.1.0.md) | v0.1.0 发布说明与该版本的已知限制 |
+| [`docs/releases/v0.1.1.md`](docs/releases/v0.1.1.md) | v0.1.1 发布说明（客户端补齐专利线）与该版本的已知限制 |
